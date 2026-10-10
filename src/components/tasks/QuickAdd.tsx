@@ -11,7 +11,7 @@ export function QuickAdd() {
 
   return (
     <form
-      className="flex flex-col gap-1 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2"
+      className="flex flex-col gap-1 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5"
       onSubmit={(e) => {
         e.preventDefault()
         if (!value.trim()) return
@@ -25,12 +25,12 @@ export function QuickAdd() {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder="添加任务，试试「明天 14:00 开会」"
-          className="flex-1 bg-transparent py-2 text-sm outline-none placeholder:text-[var(--color-muted)]"
+          className="min-h-11 flex-1 bg-transparent py-2 text-sm outline-none placeholder:text-[var(--color-muted)]"
         />
         <button
           type="submit"
           disabled={!value.trim()}
-          className="rounded-lg bg-blue-500 px-3 py-1.5 text-sm text-white disabled:opacity-40 hover:bg-blue-600"
+          className="min-h-11 rounded-lg bg-blue-500 px-3 py-2 text-sm text-white disabled:opacity-40 hover:bg-blue-600"
         >
           添加
         </button>

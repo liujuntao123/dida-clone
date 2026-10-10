@@ -70,6 +70,8 @@ interface AppState {
   abandonTask: (id: string) => void
   setTaskPriority: (id: string, priority: Priority) => void
   moveTaskToList: (id: string, listId: string) => void
+  togglePin: (id: string) => void
+  setTaskDue: (id: string, dueAt: string | null) => void
   reorderTasks: (orderedIds: string[]) => void
   addSubtask: (parentId: string, title: string) => Task
   setChecklist: (taskId: string, items: ChecklistItem[]) => void
@@ -101,22 +103,31 @@ function applyFilters(tasks: Task[], filter: FilterState): Task[] {
   })
 }
 
+function pinThen(a: Task, b: Task, cmp: number): number {
+  const pinDiff = Number(!!b.pinned) - Number(!!a.pinned)
+  return pinDiff !== 0 ? pinDiff : cmp
+}
+
 function sortTasks(tasks: Task[], sortBy: SortBy): Task[] {
   const arr = [...tasks]
   switch (sortBy) {
     case 'priority':
-      return arr.sort((a, b) => b.priority - a.priority || a.order - b.order)
+      return arr.sort((a, b) => pinThen(a, b, b.priority - a.priority || a.order - b.order))
     case 'due':
-      return arr.sort((a, b) => {
-        if (!a.dueAt && !b.dueAt) return a.order - b.order
-        if (!a.dueAt) return 1
-        if (!b.dueAt) return -1
-        return dayjs(a.dueAt).valueOf() - dayjs(b.dueAt).valueOf()
-      })
+      return arr.sort((a, b) =>
+        pinThen(a, b, (() => {
+          if (!a.dueAt && !b.dueAt) return a.order - b.order
+          if (!a.dueAt) return 1
+          if (!b.dueAt) return -1
+          return dayjs(a.dueAt).valueOf() - dayjs(b.dueAt).valueOf()
+        })()),
+      )
     case 'created':
-      return arr.sort((a, b) => dayjs(b.createdAt).valueOf() - dayjs(a.createdAt).valueOf())
+      return arr.sort((a, b) =>
+        pinThen(a, b, dayjs(b.createdAt).valueOf() - dayjs(a.createdAt).valueOf()),
+      )
     default:
-      return arr.sort((a, b) => a.order - b.order)
+      return arr.sort((a, b) => pinThen(a, b, a.order - b.order))
   }
 }
 
@@ -219,6 +230,7 @@ export const useAppStore = create<AppState>()(
           createdAt: nowIso(),
           updatedAt: nowIso(),
           order: get().tasks.length,
+          pinned: partial.pinned ?? false,
         }
         set({ tasks: [...get().tasks, task], selectedTaskId: task.id })
         return task
@@ -313,6 +325,12 @@ export const useAppStore = create<AppState>()(
 
       setTaskPriority: (id, priority) => get().updateTask(id, { priority }),
       moveTaskToList: (id, listId) => get().updateTask(id, { listId }),
+      togglePin: (id) => {
+        const task = get().tasks.find((t) => t.id === id)
+        if (!task) return
+        get().updateTask(id, { pinned: !task.pinned })
+      },
+      setTaskDue: (id, dueAt) => get().updateTask(id, { dueAt }),
 
       reorderTasks: (orderedIds) => {
         const map = new Map(orderedIds.map((id, i) => [id, i]))

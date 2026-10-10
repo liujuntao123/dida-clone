@@ -54,15 +54,22 @@ export function Sidebar() {
 
   const itemCls = (active: boolean) =>
     cn(
-      'flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition',
+      'flex w-full min-h-11 items-center gap-2 rounded-lg px-3 py-2.5 text-sm transition',
       active
         ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300'
         : 'text-[var(--color-fg)] hover:bg-[var(--color-surface-2)]',
     )
 
   return (
-    <aside className="flex h-full w-64 shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)]">
-      <div className="flex items-center justify-between px-4 py-3">
+    <aside
+      className="flex h-full w-64 shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)]"
+      style={{
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        paddingLeft: 'env(safe-area-inset-left, 0px)',
+      }}
+    >
+      <div className="flex min-h-12 items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2 font-semibold text-blue-600">
           <CheckCircle2 size={22} />
           <span>滴答清单</span>

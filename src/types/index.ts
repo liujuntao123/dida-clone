@@ -35,6 +35,7 @@ export interface Task {
   createdAt: string
   updatedAt: string
   order: number
+  pinned?: boolean
 }
 
 export interface TaskList {

@@ -8,6 +8,8 @@ export async function initCapacitor() {
   if (!Capacitor.isNativePlatform()) return
 
   try {
+    // Draw edge-to-edge; CSS env(safe-area-inset-*) keeps chrome clear of notches / status bar.
+    await StatusBar.setOverlaysWebView({ overlay: true })
     await StatusBar.setStyle({ style: Style.Default })
   } catch {
     // StatusBar may be unavailable on some devices

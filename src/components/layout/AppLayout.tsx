@@ -4,6 +4,7 @@ import { Sidebar } from './Sidebar'
 import { useAppStore } from '../../store/useAppStore'
 import { checkDueReminders, ensureNotificationPermission } from '../../lib/reminders'
 import { cn } from '../../lib/cn'
+import { ToastHost } from '../common/Toast'
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const theme = useAppStore((s) => s.theme)
@@ -31,7 +32,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-full bg-[var(--color-surface-2)] text-[var(--color-fg)]">
       {/* Desktop sidebar */}
-      <div className="hidden md:flex">{<Sidebar />}</div>
+      <div className="hidden h-full md:flex">{<Sidebar />}</div>
 
       {/* Mobile drawer */}
       {sidebarOpen && (
@@ -44,11 +45,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 md:hidden">
+        <header
+          className="flex min-h-12 items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-3 md:hidden"
+          style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 0px))', paddingBottom: '8px' }}
+        >
           <button
             type="button"
-            className="rounded-lg p-2 hover:bg-[var(--color-surface-2)]"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-[var(--color-surface-2)]"
             onClick={() => setSidebarOpen(!sidebarOpen)}
+            aria-label={sidebarOpen ? '关闭菜单' : '打开菜单'}
           >
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
@@ -56,6 +61,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </header>
         <main className={cn('min-h-0 flex-1 overflow-hidden')}>{children}</main>
       </div>
+      <ToastHost />
     </div>
   )
 }

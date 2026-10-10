@@ -1,11 +1,15 @@
 import { useShallow } from 'zustand/react/shallow'
+import { SwipeableList, Type as SwipeType } from 'react-swipeable-list'
+import 'react-swipeable-list/dist/styles.css'
 import { useAppStore } from '../../store/useAppStore'
 import { TaskItem } from './TaskItem'
 import { QuickAdd } from './QuickAdd'
 import { FilterBar } from './FilterBar'
 import { TaskDetail } from './TaskDetail'
+import { useIsMobile } from '../../hooks/useIsMobile'
 
 export function TaskListPanel() {
+  const isMobile = useIsMobile()
   const tasks = useAppStore(useShallow((s) => s.getVisibleTasks()))
   const activeView = useAppStore((s) => s.activeView)
   const lists = useAppStore((s) => s.lists)
@@ -38,10 +42,23 @@ export function TaskListPanel() {
       ['inbox', 'today', 'tomorrow', 'next7', 'all'].includes(activeView.id)) ||
     activeView.kind === 'tag'
 
+  const listBody =
+    tasks.length === 0 ? (
+      <div className="p-8 text-center text-sm text-[var(--color-muted)]">暂无任务</div>
+    ) : isMobile ? (
+      <SwipeableList type={SwipeType.IOS} fullSwipe threshold={0.35} className="swipe-task-list">
+        {tasks.map((t) => (
+          <TaskItem key={t.id} task={t} />
+        ))}
+      </SwipeableList>
+    ) : (
+      tasks.map((t) => <TaskItem key={t.id} task={t} />)
+    )
+
   return (
     <div className="flex h-full min-w-0 flex-1">
       <div className={`flex min-w-0 flex-1 flex-col ${selectedTaskId ? 'hidden md:flex' : 'flex'}`}>
-        <div className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
+        <div className="flex min-h-12 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
           <h1 className="text-lg font-semibold">{title}</h1>
           <span className="text-xs text-[var(--color-muted)]">{tasks.length} 项</span>
         </div>
@@ -51,19 +68,18 @@ export function TaskListPanel() {
           <div className="border-b border-[var(--color-border)] px-3 py-2">
             <button
               type="button"
-              className="text-sm text-red-500 hover:underline"
+              className="min-h-11 text-sm text-red-500 hover:underline"
               onClick={() => emptyTrash()}
             >
               清空垃圾桶
             </button>
           </div>
         )}
-        <div className="flex-1 overflow-y-auto bg-[var(--color-surface)]">
-          {tasks.length === 0 ? (
-            <div className="p-8 text-center text-sm text-[var(--color-muted)]">暂无任务</div>
-          ) : (
-            tasks.map((t) => <TaskItem key={t.id} task={t} />)
-          )}
+        <div
+          className="flex-1 overflow-y-auto bg-[var(--color-surface)]"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        >
+          {listBody}
         </div>
       </div>
 

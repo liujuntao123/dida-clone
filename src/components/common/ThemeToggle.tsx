@@ -8,7 +8,7 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggleTheme}
-      className="rounded-lg p-2 text-[var(--color-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)]"
+      className="flex min-h-11 min-w-11 items-center justify-center rounded-xl text-[var(--color-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)] active:opacity-80"
       title={theme === 'light' ? '切换深色' : '切换浅色'}
     >
       {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}

@@ -13,7 +13,7 @@ function CalendarTabIcon({ active }: { active: boolean }) {
     <span
       className={cn(
         'relative flex h-[22px] w-[22px] items-center justify-center rounded-[5px] border-2 text-[10px] font-semibold leading-none',
-        active ? 'border-[#FF7A45] text-[#FF7A45]' : 'border-current text-current',
+        active ? 'border-brand text-brand' : 'border-current text-current',
       )}
       aria-hidden
     >
@@ -77,7 +77,7 @@ export function MobileBottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-[#2C2C2E] bg-black md:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--color-border)] bg-[var(--color-surface)] dark:bg-black md:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       aria-label="主导航"
     >
@@ -93,7 +93,7 @@ export function MobileBottomNav() {
               onClick={() => onTab(id)}
               className={cn(
                 'flex min-h-11 flex-1 items-center justify-center transition',
-                on ? 'text-[#FF7A45]' : 'text-[#8E8E93]',
+                on ? 'text-brand' : 'text-[var(--color-muted)]',
               )}
             >
               {id === 'tasks' && <ListTodo size={24} strokeWidth={on ? 2.25 : 1.75} />}

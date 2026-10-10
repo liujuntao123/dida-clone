@@ -24,7 +24,7 @@ export function FilterBar() {
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as SortBy)}
-          className="rounded border border-[var(--color-border)] bg-transparent px-1.5 py-1"
+          className="rounded-lg border border-[var(--color-border)] bg-transparent px-2 py-1.5"
         >
           <option value="due">日期</option>
           <option value="priority">优先级</option>
@@ -39,9 +39,9 @@ export function FilterBar() {
           key={p}
           type="button"
           onClick={() => togglePriority(p)}
-          className={`rounded-full px-2 py-0.5 border ${
+          className={`min-h-8 rounded-full border px-2.5 py-1 ${
             filter.priorities.includes(p)
-              ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950'
+              ? 'border-brand bg-brand/15 text-brand'
               : 'border-[var(--color-border)]'
           }`}
         >
@@ -52,7 +52,7 @@ export function FilterBar() {
       <select
         value={filter.listIds[0] ?? ''}
         onChange={(e) => setFilter({ listIds: e.target.value ? [e.target.value] : [] })}
-        className="rounded border border-[var(--color-border)] bg-transparent px-1.5 py-1"
+        className="rounded-lg border border-[var(--color-border)] bg-transparent px-2 py-1.5"
       >
         <option value="">全部清单</option>
         {lists.map((l) => (
@@ -63,7 +63,7 @@ export function FilterBar() {
       <select
         value={filter.tagIds[0] ?? ''}
         onChange={(e) => setFilter({ tagIds: e.target.value ? [e.target.value] : [] })}
-        className="rounded border border-[var(--color-border)] bg-transparent px-1.5 py-1"
+        className="rounded-lg border border-[var(--color-border)] bg-transparent px-2 py-1.5"
       >
         <option value="">全部标签</option>
         {tags.map((t) => (
@@ -74,7 +74,7 @@ export function FilterBar() {
       {(filter.priorities.length > 0 || filter.listIds.length > 0 || filter.tagIds.length > 0 || filter.query) && (
         <button
           type="button"
-          className="text-blue-500 hover:underline"
+          className="min-h-8 text-brand hover:text-brand-hover"
           onClick={() => setFilter({ priorities: [], listIds: [], tagIds: [], query: '' })}
         >
           清除筛选

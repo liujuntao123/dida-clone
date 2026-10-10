@@ -35,7 +35,7 @@ function SortableCard({ task }: { task: Task }) {
       style={style}
       {...attributes}
       {...listeners}
-      className="mb-2 cursor-grab rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-sm active:cursor-grabbing"
+      className="mb-2 cursor-grab rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-sm active:cursor-grabbing active:opacity-90"
       onClick={() => setSelectedTaskId(task.id)}
     >
       <div className="text-sm font-medium">{task.title}</div>
@@ -50,13 +50,13 @@ function Column({ col, tasks }: { col: ColumnDef; tasks: Task[] }) {
     <div
       ref={setNodeRef}
       className={cn(
-        'flex w-72 shrink-0 flex-col rounded-xl bg-[var(--color-surface-2)] p-3',
-        isOver && 'ring-2 ring-blue-400',
+        'flex w-72 shrink-0 flex-col rounded-2xl bg-[var(--color-card)] p-3',
+        isOver && 'ring-2 ring-brand/70',
       )}
     >
       <div className="mb-3 flex items-center justify-between px-1">
         <h3 className="text-sm font-semibold">{col.title}</h3>
-        <span className="rounded-full bg-[var(--color-surface)] px-2 text-xs text-[var(--color-muted)]">
+        <span className="rounded-full bg-[var(--color-surface-2)] px-2 text-xs text-[var(--color-muted)] dark:bg-black/40">
           {tasks.length}
         </span>
       </div>
@@ -136,13 +136,13 @@ export function BoardView() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-[var(--color-surface)]">
-      <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
+    <div className="flex h-full flex-col bg-[var(--color-surface-2)]">
+      <div className="flex min-h-12 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
         <h1 className="text-lg font-semibold">看板</h1>
         <select
           value={boardGroupBy}
           onChange={(e) => setBoardGroupBy(e.target.value as 'priority' | 'status')}
-          className="rounded-lg border border-[var(--color-border)] bg-transparent px-2 py-1 text-sm"
+          className="field-focus min-h-11 rounded-xl border border-[var(--color-border)] bg-transparent px-2.5 py-1.5 text-sm"
         >
           <option value="priority">按优先级</option>
           <option value="status">按状态</option>
@@ -155,7 +155,7 @@ export function BoardView() {
           ))}
           <DragOverlay>
             {activeTask ? (
-              <div className="w-72 rounded-lg border border-blue-300 bg-[var(--color-surface)] p-3 shadow-lg">
+              <div className="w-72 rounded-xl border border-brand/40 bg-[var(--color-card)] p-3 shadow-lg">
                 {activeTask.title}
               </div>
             ) : null}

@@ -32,8 +32,8 @@ export function TaskDetailSheet() {
     >
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 z-50 bg-black/40" />
-        <Drawer.Content className="fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-2xl bg-[var(--color-surface)] outline-none">
-          <div className="mx-auto mt-2 mb-1 h-1.5 w-10 shrink-0 rounded-full bg-slate-300 dark:bg-slate-600" />
+        <Drawer.Content className="fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-2xl bg-[var(--color-card)] outline-none dark:bg-[#1C1C1E]">
+          <div className="mx-auto mt-2 mb-1 h-1 w-9 shrink-0 rounded-full bg-[var(--color-muted)]/40" />
           <Drawer.Title className="sr-only">任务详情</Drawer.Title>
           <Drawer.Description className="sr-only">查看并编辑所选任务</Drawer.Description>
           <div className="min-h-0 flex-1 overflow-hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>

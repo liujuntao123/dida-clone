@@ -103,12 +103,12 @@ export function SettingsPage() {
   })()
 
   return (
-    <div className="h-full overflow-auto bg-[var(--color-surface)] p-6">
+    <div className="h-full overflow-auto bg-[var(--color-surface-2)] p-4 md:p-6">
       <h1 className="mb-6 text-lg font-semibold">设置</h1>
 
       <section className="mb-8">
         <h2 className="mb-3 text-sm font-medium text-[var(--color-muted)]">外观</h2>
-        <div className="flex items-center justify-between rounded-xl border border-[var(--color-border)] px-4 py-3">
+        <div className="flex min-h-11 items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-3">
           <span className="text-sm">当前主题：{theme === 'light' ? '浅色' : '深色'}</span>
           <ThemeToggle />
         </div>
@@ -116,7 +116,7 @@ export function SettingsPage() {
 
       <section className="mb-8">
         <h2 className="mb-3 text-sm font-medium text-[var(--color-muted)]">云同步（Cloudflare）</h2>
-        <div className="space-y-3 rounded-xl border border-[var(--color-border)] p-4">
+        <div className="space-y-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
           <p className="text-xs text-[var(--color-muted)]">
             单用户 self-host：在 Cloudflare Worker 设置 ACCESS_KEY，下方填入 API 地址与密钥即可多端同步。
             密钥仅保存在本机 localStorage，不会写入 Git。
@@ -128,7 +128,7 @@ export function SettingsPage() {
               value={apiBaseUrl}
               onChange={(e) => setApiBaseUrl(e.target.value)}
               placeholder="https://dida-clone-sync.xxx.workers.dev"
-              className="w-full rounded-lg border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm outline-none focus:border-blue-500"
+              className="field-focus w-full rounded-xl border border-[var(--color-border)] bg-transparent px-3 py-2.5 text-sm"
             />
           </label>
           <label className="block text-sm">
@@ -139,7 +139,7 @@ export function SettingsPage() {
               onChange={(e) => setAccessKey(e.target.value)}
               placeholder="与 Worker 的 ACCESS_KEY 一致"
               autoComplete="off"
-              className="w-full rounded-lg border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm outline-none focus:border-blue-500"
+              className="field-focus w-full rounded-xl border border-[var(--color-border)] bg-transparent px-3 py-2.5 text-sm"
             />
           </label>
           <div className="flex flex-wrap gap-2 text-xs text-[var(--color-muted)]">
@@ -156,7 +156,7 @@ export function SettingsPage() {
             <button
               type="button"
               disabled={busy}
-              className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm disabled:opacity-50"
+              className="min-h-11 rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm active:opacity-80 disabled:opacity-50"
               onClick={() => {
                 persistConfig()
                 setMessage('已保存')
@@ -167,7 +167,7 @@ export function SettingsPage() {
             <button
               type="button"
               disabled={busy || !apiBaseUrl.trim()}
-              className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm disabled:opacity-50"
+              className="min-h-11 rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm active:opacity-80 disabled:opacity-50"
               onClick={() =>
                 void (async () => {
                   setBusy(true)
@@ -182,7 +182,7 @@ export function SettingsPage() {
             <button
               type="button"
               disabled={busy || !isSyncConfigured({ ...loadSyncConfig(), apiBaseUrl, accessKey })}
-              className="rounded-lg bg-blue-500 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+              className="rounded-xl bg-brand px-3 py-2 text-sm text-white hover:bg-brand-hover disabled:opacity-50"
               onClick={() => void run(doFullSync, '立即同步完成')}
             >
               立即同步
@@ -190,7 +190,7 @@ export function SettingsPage() {
             <button
               type="button"
               disabled={busy}
-              className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm disabled:opacity-50"
+              className="min-h-11 rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm active:opacity-80 disabled:opacity-50"
               onClick={() => void run(doPull, '已从云端拉取')}
             >
               拉取
@@ -198,7 +198,7 @@ export function SettingsPage() {
             <button
               type="button"
               disabled={busy}
-              className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm disabled:opacity-50"
+              className="min-h-11 rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm active:opacity-80 disabled:opacity-50"
               onClick={() => void run(doPush, '已上传到云端')}
             >
               上传
@@ -206,7 +206,7 @@ export function SettingsPage() {
             <button
               type="button"
               disabled={busy}
-              className="rounded-lg border border-amber-500/50 px-3 py-1.5 text-sm text-amber-600 disabled:opacity-50"
+              className="min-h-11 rounded-xl border border-amber-500/50 px-3 py-2 text-sm text-amber-600 active:opacity-80 disabled:opacity-50"
               onClick={() => {
                 if (!confirm('强制上传会覆盖云端数据，确定？')) return
                 void run(doForcePush, '已强制覆盖云端')
@@ -224,7 +224,7 @@ export function SettingsPage() {
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  className="rounded-lg bg-blue-500 px-3 py-1.5 text-white"
+                  className="rounded-xl bg-brand px-3 py-2 text-white hover:bg-brand-hover"
                   onClick={() => {
                     if (conflict.remote.state) {
                       applyRemoteOverwrite(conflict.remote.state, conflict.remote.revision)
@@ -257,7 +257,7 @@ export function SettingsPage() {
         <h2 className="mb-3 text-sm font-medium text-[var(--color-muted)]">通知</h2>
         <button
           type="button"
-          className="rounded-lg bg-blue-500 px-4 py-2 text-sm text-white"
+          className="min-h-11 rounded-xl bg-brand px-4 py-2 text-sm text-white hover:bg-brand-hover"
           onClick={() => void ensureNotificationPermission()}
         >
           请求浏览器通知权限
@@ -271,7 +271,7 @@ export function SettingsPage() {
         <h2 className="mb-3 text-sm font-medium text-[var(--color-muted)]">清单管理</h2>
         <ul className="space-y-2">
           {lists.map((l) => (
-            <li key={l.id} className="flex items-center gap-2 rounded-xl border border-[var(--color-border)] px-3 py-2">
+            <li key={l.id} className="flex min-h-11 items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2.5">
               <input
                 type="color"
                 value={l.color}
@@ -305,7 +305,7 @@ export function SettingsPage() {
         <h2 className="mb-3 text-sm font-medium text-[var(--color-muted)]">标签管理</h2>
         <ul className="space-y-2">
           {tags.map((t) => (
-            <li key={t.id} className="flex items-center justify-between rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm">
+            <li key={t.id} className="flex min-h-11 items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2.5 text-sm">
               <span style={{ color: t.color }}>#{t.name}</span>
               <button type="button" className="text-xs text-red-500" onClick={() => deleteTag(t.id)}>
                 删除

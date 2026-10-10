@@ -154,7 +154,10 @@ export function TaskListPanel() {
 
   const listBody =
     tasks.length === 0 ? (
-      <div className="p-8 text-center text-sm text-[var(--color-muted)]">暂无任务</div>
+      <div className="flex flex-col items-center justify-center gap-2 px-6 py-16 text-center">
+        <p className="text-base text-[var(--color-fg)]/80">暂无任务</p>
+        <p className="text-sm text-[var(--color-muted)]">点右下角 + 添加一件事</p>
+      </div>
     ) : (
       <div className="flex flex-col gap-3 px-3 py-3">
         {groups.map((g) => (
@@ -208,7 +211,7 @@ export function TaskListPanel() {
         {showQuickAdd && !isMobile && <FilterBar />}
         {activeView.kind === 'smart' && activeView.id === 'trash' && (
           <div className="border-b border-[var(--color-border)] px-3 py-2">
-            <button type="button" className="min-h-11 text-sm text-red-500 hover:underline" onClick={() => emptyTrash()}>
+            <button type="button" className="min-h-11 text-sm text-red-500 active:opacity-80" onClick={() => emptyTrash()}>
               清空垃圾桶
             </button>
           </div>

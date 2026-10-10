@@ -45,13 +45,13 @@ export function CalendarView() {
   const monthTitle = month.format('M月')
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-black text-white">
+    <div className="flex h-full flex-col overflow-hidden bg-[var(--color-surface-2)] text-[var(--color-fg)] dark:bg-black dark:text-white">
       <div
         className="flex items-center justify-between px-4 pb-2"
         style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 0px))' }}
       >
         <h1 className="text-2xl font-semibold tracking-tight">{monthTitle}</h1>
-        <div className="flex items-center gap-1 text-[#8E8E93]">
+        <div className="flex items-center gap-1 text-[var(--color-muted)]">
           <button type="button" className="flex h-10 w-10 items-center justify-center" aria-label="筛选">
             <Filter size={20} strokeWidth={1.75} />
           </button>
@@ -67,7 +67,7 @@ export function CalendarView() {
       <div className="px-2 pb-2">
         <div className="mb-1 grid grid-cols-7">
           {WEEKDAYS.map((w) => (
-            <div key={w} className="py-1 text-center text-xs text-[#8E8E93]">
+            <div key={w} className="py-1 text-center text-xs text-[var(--color-muted)]">
               {w}
             </div>
           ))}
@@ -93,16 +93,16 @@ export function CalendarView() {
                 <span
                   className={cn(
                     'flex h-9 w-9 items-center justify-center rounded-full text-[15px]',
-                    !inMonth && 'text-white/25',
-                    inMonth && !isSelected && !isToday && 'text-white',
-                    isToday && !isSelected && 'font-semibold text-[#FF7A45]',
-                    isSelected && 'bg-[#FF7A45] font-semibold text-white',
+                    !inMonth && 'text-[var(--color-muted)]/40',
+                    inMonth && !isSelected && !isToday && 'text-[var(--color-fg)]',
+                    isToday && !isSelected && 'font-semibold text-brand',
+                    isSelected && 'bg-brand font-semibold text-white',
                   )}
                 >
                   {d.date()}
                 </span>
                 {hasTasks && !isSelected && (
-                  <span className="mt-0.5 h-1 w-1 rounded-full bg-[#FF7A45]/80" />
+                  <span className="mt-0.5 h-1 w-1 rounded-full bg-brand/80" />
                 )}
               </button>
             )
@@ -111,7 +111,7 @@ export function CalendarView() {
         <div className="mt-1 flex items-center justify-between px-2">
           <button
             type="button"
-            className="flex h-9 w-9 items-center justify-center text-[#8E8E93]"
+            className="flex h-9 w-9 items-center justify-center text-[var(--color-muted)]"
             onClick={() => setCalendarCursor(month.subtract(1, 'month').toISOString())}
             aria-label="上一月"
           >
@@ -119,7 +119,7 @@ export function CalendarView() {
           </button>
           <button
             type="button"
-            className="text-xs text-[#FF7A45]"
+            className="text-xs text-brand"
             onClick={() => {
               const now = dayjs()
               setCalendarCursor(now.toISOString())
@@ -130,7 +130,7 @@ export function CalendarView() {
           </button>
           <button
             type="button"
-            className="flex h-9 w-9 items-center justify-center text-[#8E8E93]"
+            className="flex h-9 w-9 items-center justify-center text-[var(--color-muted)]"
             onClick={() => setCalendarCursor(month.add(1, 'month').toISOString())}
             aria-label="下一月"
           >
@@ -139,17 +139,17 @@ export function CalendarView() {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto border-t border-[#2C2C2E]">
+      <div className="min-h-0 flex-1 overflow-y-auto border-t border-[var(--color-border)]">
         {dayTasks.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 px-6 pb-20 text-center">
-            <div className="relative flex h-24 w-24 items-center justify-center rounded-2xl bg-[#1C1C1E]">
-              <CalendarDays size={40} className="text-white/25" strokeWidth={1.25} />
-              <span className="absolute bottom-3 right-3 flex h-7 w-7 items-center justify-center rounded-full bg-[#FF7A45]">
+            <div className="relative flex h-24 w-24 items-center justify-center rounded-2xl bg-[var(--color-card)]">
+              <CalendarDays size={40} className="text-[var(--color-muted)]/50" strokeWidth={1.25} />
+              <span className="absolute bottom-3 right-3 flex h-7 w-7 items-center justify-center rounded-full bg-brand">
                 <ChevronRight size={14} className="text-white" />
               </span>
             </div>
-            <p className="text-base text-white/90">你这一天没有任务</p>
-            <p className="text-sm text-[#8E8E93]">放松一下吧</p>
+            <p className="text-base text-[var(--color-fg)]/90">你这一天没有任务</p>
+            <p className="text-sm text-[var(--color-muted)]">放松一下吧</p>
           </div>
         ) : (
           <ul className="space-y-1 px-3 py-3">
@@ -157,13 +157,13 @@ export function CalendarView() {
               <li key={t.id}>
                 <button
                   type="button"
-                  className="flex w-full items-center gap-3 rounded-xl bg-[#1C1C1E] px-3 py-3 text-left"
+                  className="flex w-full items-center gap-3 rounded-xl bg-[var(--color-card)] px-3 py-3 text-left"
                   onClick={() => setSelectedTaskId(t.id)}
                 >
                   <span
                     role="checkbox"
                     aria-checked={false}
-                    className="text-[#8E8E93]"
+                    className="text-[var(--color-muted)]"
                     onClick={(e) => {
                       e.stopPropagation()
                       toggleComplete(t.id)

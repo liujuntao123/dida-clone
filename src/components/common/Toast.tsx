@@ -20,12 +20,12 @@ export function ToastHost() {
       }}
       role="status"
     >
-      <div className="pointer-events-auto flex max-w-md items-center gap-3 rounded-xl bg-slate-900 px-4 py-3 text-sm text-white shadow-lg dark:bg-slate-700">
+      <div className="pointer-events-auto flex max-w-md items-center gap-3 rounded-2xl bg-[#1C1C1E] px-4 py-3 text-sm text-white shadow-lg ring-1 ring-white/10">
         <span className="flex-1">{message}</span>
         {undo && (
           <button
             type="button"
-            className="min-h-11 shrink-0 rounded-lg px-3 font-medium text-blue-300 hover:bg-white/10"
+            className="min-h-11 shrink-0 rounded-lg px-3 font-medium text-brand hover:bg-white/10"
             onClick={() => {
               undo()
               dismiss()
@@ -36,7 +36,7 @@ export function ToastHost() {
         )}
         <button
           type="button"
-          className="min-h-11 min-w-11 shrink-0 rounded-lg text-slate-300 hover:bg-white/10"
+          className="min-h-11 min-w-11 shrink-0 rounded-lg text-white/50 hover:bg-white/10"
           aria-label="关闭"
           onClick={dismiss}
         >

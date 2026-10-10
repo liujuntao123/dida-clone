@@ -83,22 +83,22 @@ function Card({ task, listName }: { task: Task; listName?: string }) {
       <div className="flex items-start gap-2">
         <button
           type="button"
-          className="mt-0.5 text-[#8E8E93]"
+          className="mt-0.5 text-[var(--color-muted)]"
           onClick={(e) => {
             e.stopPropagation()
             toggleComplete(task.id)
           }}
         >
           {task.status === 'done' ? (
-            <CheckSquare size={18} className="text-[#FF7A45]" />
+            <CheckSquare size={18} className="text-brand" />
           ) : (
             <Square size={18} strokeWidth={1.75} />
           )}
         </button>
         <div className="min-w-0 flex-1">
-          <div className="text-[14px] leading-snug text-white">{task.title}</div>
+          <div className="text-[14px] leading-snug text-[var(--color-fg)]">{task.title}</div>
           {listName && (
-            <div className="mt-1 flex items-center gap-1 text-[11px] text-[#8E8E93]">
+            <div className="mt-1 flex items-center gap-1 text-[11px] text-[var(--color-muted)]">
               <List size={11} />
               {listName}
             </div>
@@ -125,8 +125,8 @@ function Quad({
     <div
       ref={setNodeRef}
       className={cn(
-        'flex min-h-[42vw] flex-col rounded-2xl bg-[#1C1C1E] p-3 md:min-h-64',
-        isOver && 'ring-2 ring-[#FF7A45]/60',
+        'flex min-h-[42vw] flex-col rounded-2xl bg-[var(--color-card)] p-3 md:min-h-64',
+        isOver && 'ring-2 ring-brand/60',
       )}
     >
       <div className="mb-2 flex items-center gap-2">
@@ -137,7 +137,7 @@ function Quad({
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
         {tasks.length === 0 ? (
-          <div className="flex h-full min-h-16 items-center justify-center text-sm text-[#8E8E93]">没有任务</div>
+          <div className="flex h-full min-h-16 items-center justify-center text-sm text-[var(--color-muted)]">没有任务</div>
         ) : (
           <>
             {visible.map((t) => (
@@ -146,7 +146,7 @@ function Quad({
             {tasks.length > 4 && !expanded && (
               <button
                 type="button"
-                className="w-full py-1 text-center text-xs text-[#8E8E93]"
+                className="w-full py-1 text-center text-xs text-[var(--color-muted)]"
                 onClick={() => setExpanded(true)}
               >
                 查看更多
@@ -186,13 +186,13 @@ export function QuadrantView() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-black text-white">
+    <div className="flex h-full flex-col bg-[var(--color-surface-2)] text-[var(--color-fg)] dark:bg-black dark:text-white">
       <div
         className="flex items-center justify-between px-4 pb-2"
         style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 0px))' }}
       >
         <h1 className="text-xl font-semibold">四象限</h1>
-        <button type="button" className="flex h-10 w-10 items-center justify-center text-[#8E8E93]" aria-label="更多">
+        <button type="button" className="flex h-10 w-10 items-center justify-center text-[var(--color-muted)]" aria-label="更多">
           <MoreVertical size={20} />
         </button>
       </div>
@@ -214,7 +214,7 @@ export function QuadrantView() {
           </div>
           <DragOverlay>
             {activeTask ? (
-              <div className="rounded-lg bg-[#1C1C1E] px-3 py-2 text-sm shadow-lg">{activeTask.title}</div>
+              <div className="rounded-lg bg-[var(--color-card)] px-3 py-2 text-sm shadow-lg">{activeTask.title}</div>
             ) : null}
           </DragOverlay>
         </DndContext>

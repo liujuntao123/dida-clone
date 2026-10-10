@@ -151,7 +151,7 @@ export function MobileFab() {
         type="button"
         aria-label="添加任务"
         className={cn(
-          'fixed z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#FF7A45] text-white shadow-lg shadow-[#FF7A45]/35 md:hidden',
+          'fixed z-40 flex h-14 w-14 items-center justify-center rounded-full bg-brand text-white shadow-lg shadow-brand/35 md:hidden',
           'active:scale-95 touch-none select-none',
           live && 'scale-105 opacity-95',
         )}
@@ -178,7 +178,7 @@ export function MobileFab() {
         <Drawer.Portal>
           <Drawer.Overlay className="fixed inset-0 z-50 bg-black/50 md:hidden" />
           <Drawer.Content
-            className="fixed inset-x-0 bottom-0 z-50 flex max-h-[55vh] flex-col rounded-t-2xl bg-[#1C1C1E] outline-none md:hidden"
+            className="fixed inset-x-0 bottom-0 z-50 flex max-h-[55vh] flex-col rounded-t-2xl bg-[var(--color-card)] outline-none dark:bg-[#1C1C1E] md:hidden"
             style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom, 0px))' }}
             onOpenAutoFocus={(e) => {
               e.preventDefault()
@@ -200,14 +200,14 @@ export function MobileFab() {
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
                 placeholder="准备做什么？"
-                className="accent-caret min-h-12 w-full bg-transparent text-[17px] text-white outline-none placeholder:text-[#8E8E93]"
+                className="accent-caret min-h-12 w-full bg-transparent text-[17px] text-white outline-none placeholder:text-[var(--color-muted)]"
               />
               {preview?.dueAt && (
-                <div className="text-xs text-[#FF7A45]">
+                <div className="text-xs text-brand">
                   识别日期：{dayjs(preview.dueAt).format('M月D日 HH:mm')}
                 </div>
               )}
-              <div className="mt-1 flex items-center gap-1 text-[#8E8E93]">
+              <div className="mt-1 flex items-center gap-1 text-[var(--color-muted)]">
                 <button type="button" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-white/5" aria-label="日期">
                   <CalendarDays size={20} strokeWidth={1.75} />
                 </button>

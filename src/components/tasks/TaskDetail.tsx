@@ -45,7 +45,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
   if (!task) {
     if (variant === 'sheet') return null
     return (
-      <div className="hidden h-full items-center justify-center text-sm text-[var(--color-muted)] lg:flex lg:w-[360px] lg:border-l lg:border-[var(--color-border)] lg:bg-[var(--color-surface)]">
+      <div className="hidden h-full items-center justify-center text-sm text-[var(--color-muted)] lg:flex lg:w-[360px] lg:border-l lg:border-[var(--color-border)] lg:bg-[var(--color-card)]">
         选择任务查看详情
       </div>
     )
@@ -79,7 +79,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
   return (
     <div
       className={cn(
-        'flex h-full w-full flex-col bg-[var(--color-surface)]',
+        'flex h-full w-full flex-col bg-[var(--color-card)]',
         variant === 'panel' && 'border-l border-[var(--color-border)] lg:w-[380px]',
       )}
     >
@@ -99,7 +99,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
         <input
           value={task.title}
           onChange={(e) => updateTask(task.id, { title: e.target.value })}
-          className="w-full border-0 bg-transparent text-lg font-medium outline-none"
+          className="accent-caret w-full border-0 bg-transparent text-lg font-medium outline-none"
         />
 
         <div className="grid grid-cols-[88px_1fr] items-center gap-2 text-sm">
@@ -107,7 +107,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
           <select
             value={task.listId}
             onChange={(e) => updateTask(task.id, { listId: e.target.value })}
-            className="min-h-11 rounded-lg border border-[var(--color-border)] bg-transparent px-2 py-1.5"
+            className="field-focus min-h-11 rounded-xl border border-[var(--color-border)] bg-transparent px-2.5 py-1.5"
           >
             {lists.map((l) => (
               <option key={l.id} value={l.id}>{l.name}</option>
@@ -121,8 +121,10 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
                 key={p}
                 type="button"
                 onClick={() => updateTask(task.id, { priority: p })}
-                className={`inline-flex min-h-11 items-center gap-1 rounded-lg border px-2 py-1 text-xs ${
-                  task.priority === p ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' : 'border-[var(--color-border)]'
+                className={`inline-flex min-h-11 items-center gap-1 rounded-xl border px-2.5 py-1 text-xs ${
+                  task.priority === p
+                    ? 'border-brand bg-brand/15 text-brand'
+                    : 'border-[var(--color-border)]'
                 }`}
               >
                 <PriorityFlag priority={p} size={12} />
@@ -136,7 +138,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
             type="datetime-local"
             value={dueLocal}
             onChange={(e) => setDueLocal(e.target.value)}
-            className="min-h-11 rounded-lg border border-[var(--color-border)] bg-transparent px-2 py-1.5"
+            className="field-focus min-h-11 rounded-xl border border-[var(--color-border)] bg-transparent px-2.5 py-1.5"
           />
 
           <span className="text-[var(--color-muted)]">提醒</span>
@@ -144,14 +146,14 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
             type="datetime-local"
             value={remindLocal}
             onChange={(e) => setRemindLocal(e.target.value)}
-            className="min-h-11 rounded-lg border border-[var(--color-border)] bg-transparent px-2 py-1.5"
+            className="field-focus min-h-11 rounded-xl border border-[var(--color-border)] bg-transparent px-2.5 py-1.5"
           />
 
           <span className="text-[var(--color-muted)]">重复</span>
           <select
             value={repeatValue}
             onChange={(e) => setRepeat(e.target.value)}
-            className="min-h-11 rounded-lg border border-[var(--color-border)] bg-transparent px-2 py-1.5"
+            className="field-focus min-h-11 rounded-xl border border-[var(--color-border)] bg-transparent px-2.5 py-1.5"
           >
             <option value="">不重复</option>
             <option value="daily">每天</option>
@@ -172,7 +174,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
                     repeat: { type: 'custom', intervalDays: Math.max(1, Number(e.target.value) || 1) },
                   })
                 }
-                className="min-h-11 rounded-lg border border-[var(--color-border)] bg-transparent px-2 py-1.5"
+                className="field-focus min-h-11 rounded-xl border border-[var(--color-border)] bg-transparent px-2.5 py-1.5"
               />
             </>
           )}
@@ -253,9 +255,9 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
               value={checkText}
               onChange={(e) => setCheckText(e.target.value)}
               placeholder="添加检查项"
-              className="min-h-11 flex-1 rounded-lg border border-[var(--color-border)] px-2 py-1 text-sm outline-none"
+              className="field-focus min-h-11 flex-1 rounded-xl border border-[var(--color-border)] px-2.5 py-1 text-sm"
             />
-            <button type="submit" className="flex min-h-11 min-w-11 items-center justify-center rounded-lg bg-blue-500 text-white">
+            <button type="submit" className="flex min-h-11 min-w-11 items-center justify-center rounded-xl bg-brand text-white hover:bg-brand-hover">
               <Plus size={16} />
             </button>
           </form>
@@ -274,7 +276,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
                   />
                   <button
                     type="button"
-                    className="flex min-h-11 flex-1 truncate text-left hover:text-blue-600"
+                    className="flex min-h-11 flex-1 truncate text-left hover:text-brand"
                     onClick={() => setSelectedTaskId(s.id)}
                   >
                     {s.title}
@@ -295,9 +297,9 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
                 value={subTitle}
                 onChange={(e) => setSubTitle(e.target.value)}
                 placeholder="添加子任务"
-                className="min-h-11 flex-1 rounded-lg border border-[var(--color-border)] px-2 py-1 text-sm outline-none"
+                className="field-focus min-h-11 flex-1 rounded-xl border border-[var(--color-border)] px-2.5 py-1 text-sm"
               />
-              <button type="submit" className="flex min-h-11 min-w-11 items-center justify-center rounded-lg bg-blue-500 text-white">
+              <button type="submit" className="flex min-h-11 min-w-11 items-center justify-center rounded-xl bg-brand text-white hover:bg-brand-hover">
                 <Plus size={16} />
               </button>
             </form>
@@ -309,7 +311,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
             <span className="text-sm font-medium">备注</span>
             <button
               type="button"
-              className="min-h-11 text-xs text-blue-500"
+              className="min-h-11 text-xs text-brand"
               onClick={() => setNotePreview((v) => !v)}
             >
               {notePreview ? '编辑' : '预览'}
@@ -327,7 +329,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
               onChange={(e) => updateTask(task.id, { note: e.target.value })}
               rows={6}
               placeholder="支持简单 Markdown…"
-              className="w-full rounded-lg border border-[var(--color-border)] bg-transparent p-3 text-sm outline-none"
+              className="field-focus accent-caret w-full rounded-xl border border-[var(--color-border)] bg-transparent p-3 text-sm"
             />
           )}
         </div>
@@ -343,29 +345,29 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
       >
         {task.status === 'todo' && (
           <>
-            <button type="button" className="min-h-11 rounded-lg bg-green-500 px-3 py-1.5 text-sm text-white" onClick={() => toggleComplete(task.id)}>
+            <button type="button" className="min-h-11 rounded-xl bg-emerald-500 px-3 py-1.5 text-sm text-white active:opacity-90" onClick={() => toggleComplete(task.id)}>
               完成
             </button>
-            <button type="button" className="inline-flex min-h-11 items-center gap-1 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm" onClick={() => abandonTask(task.id)}>
+            <button type="button" className="inline-flex min-h-11 items-center gap-1 rounded-xl border border-[var(--color-border)] px-3 py-1.5 text-sm active:opacity-80" onClick={() => abandonTask(task.id)}>
               <Ban size={14} /> 放弃
             </button>
-            <button type="button" className="inline-flex min-h-11 items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600" onClick={() => softDelete(task.id)}>
+            <button type="button" className="inline-flex min-h-11 items-center gap-1 rounded-xl border border-red-500/40 px-3 py-1.5 text-sm text-red-500" onClick={() => softDelete(task.id)}>
               <Trash2 size={14} /> 删除
             </button>
           </>
         )}
         {task.status === 'done' && (
-          <button type="button" className="inline-flex min-h-11 items-center gap-1 rounded-lg border px-3 py-1.5 text-sm" onClick={() => toggleComplete(task.id)}>
+          <button type="button" className="inline-flex min-h-11 items-center gap-1 rounded-xl border border-[var(--color-border)] px-3 py-1.5 text-sm active:opacity-80" onClick={() => toggleComplete(task.id)}>
             <RotateCcw size={14} /> 恢复未完成
           </button>
         )}
         {(task.status === 'abandoned' || task.status === 'trashed') && (
           <>
-            <button type="button" className="inline-flex min-h-11 items-center gap-1 rounded-lg border px-3 py-1.5 text-sm" onClick={() => restoreTask(task.id)}>
+            <button type="button" className="inline-flex min-h-11 items-center gap-1 rounded-xl border border-[var(--color-border)] px-3 py-1.5 text-sm active:opacity-80" onClick={() => restoreTask(task.id)}>
               <RotateCcw size={14} /> 恢复
             </button>
             {task.status === 'trashed' && (
-              <button type="button" className="min-h-11 rounded-lg bg-red-500 px-3 py-1.5 text-sm text-white" onClick={() => permanentlyDelete(task.id)}>
+              <button type="button" className="min-h-11 rounded-xl bg-red-500 px-3 py-1.5 text-sm text-white active:opacity-90" onClick={() => permanentlyDelete(task.id)}>
                 永久删除
               </button>
             )}

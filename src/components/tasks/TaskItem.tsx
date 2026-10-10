@@ -104,13 +104,13 @@ export function TaskItem({ task, compact = false }: { task: Task; compact?: bool
   const trailingActions = (
     <TrailingActions>
       <SwipeAction onClick={() => setDueWithToast('今天', dueAtDay(0, task.dueAt))}>
-        <div className="flex h-full min-w-[64px] flex-col items-center justify-center gap-0.5 bg-blue-500 px-2 text-xs text-white">
+        <div className="flex h-full min-w-[64px] flex-col items-center justify-center gap-0.5 bg-brand px-2 text-xs text-white">
           <CalendarDays size={16} />
           今天
         </div>
       </SwipeAction>
       <SwipeAction onClick={() => setDueWithToast('明天', dueAtDay(1, task.dueAt))}>
-        <div className="flex h-full min-w-[64px] flex-col items-center justify-center gap-0.5 bg-sky-500 px-2 text-xs text-white">
+        <div className="flex h-full min-w-[64px] flex-col items-center justify-center gap-0.5 bg-brand-hover px-2 text-xs text-white">
           <CalendarDays size={16} />
           明天
         </div>
@@ -137,14 +137,14 @@ export function TaskItem({ task, compact = false }: { task: Task; compact?: bool
         compact
           ? 'rounded-xl hover:bg-white/5'
           : 'border-b border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-2)]',
-        selected && (compact ? 'bg-[#FF7A45]/10' : 'bg-[#FF7A45]/10'),
+        selected && 'bg-brand/10',
         pinned && !compact && 'border-l-2 border-l-amber-400',
       )}
       onClick={() => setSelectedTaskId(task.id)}
     >
       <button
         type="button"
-        className="mt-0.5 flex min-h-10 min-w-10 shrink-0 items-center justify-center text-[var(--color-muted)] hover:text-[#FF7A45]"
+        className="mt-0.5 flex min-h-10 min-w-10 shrink-0 items-center justify-center text-[var(--color-muted)] hover:text-brand"
         onClick={(e) => {
           e.stopPropagation()
           completeWithUndo()
@@ -152,7 +152,7 @@ export function TaskItem({ task, compact = false }: { task: Task; compact?: bool
         aria-label={done ? '取消完成' : '完成'}
       >
         {done ? (
-          compact ? <CheckSquare size={20} className="text-[#FF7A45]" /> : <CheckCircle2 size={20} className="text-green-500" />
+          compact ? <CheckSquare size={20} className="text-brand" /> : <CheckCircle2 size={20} className="text-green-500" />
         ) : (
           compact ? <Square size={20} strokeWidth={1.75} className="text-[#8E8E93]" /> : <Circle size={20} />
         )}
@@ -216,7 +216,7 @@ export function TaskItem({ task, compact = false }: { task: Task; compact?: bool
     <div className="fixed inset-0 z-[90] flex items-end justify-center md:items-center" role="dialog" aria-modal>
       <button type="button" className="absolute inset-0 bg-black/40" aria-label="关闭" onClick={() => setMoveOpen(false)} />
       <div
-        className="relative z-10 w-full max-w-md rounded-t-2xl bg-[var(--color-surface)] p-4 shadow-xl md:rounded-2xl"
+        className="relative z-10 w-full max-w-md rounded-t-2xl bg-[var(--color-card)] p-4 shadow-xl md:rounded-2xl dark:bg-[#1C1C1E]"
         style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom, 0px))' }}
       >
         <div className="mb-3 text-sm font-semibold">移动到清单</div>
@@ -227,7 +227,7 @@ export function TaskItem({ task, compact = false }: { task: Task; compact?: bool
               type="button"
               className={cn(
                 'flex min-h-11 items-center gap-2 rounded-lg px-3 text-left text-sm hover:bg-[var(--color-surface-2)]',
-                l.id === task.listId && 'bg-[#FF7A45]/15 text-[#FF7A45]',
+                l.id === task.listId && 'bg-brand/15 text-brand',
               )}
               onClick={() => {
                 const prev = task.listId

@@ -106,22 +106,22 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
         }}
       >
         <div className="flex items-center gap-3 px-4 pb-3 pt-4">
-          <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#2C2C2E]">
-            <User size={22} className="text-[#FF7A45]" />
+          <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--color-border)]">
+            <User size={22} className="text-brand" />
             <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#C9A227] text-[8px]">♛</span>
           </div>
           <div className="min-w-0 flex-1">
             <div className="truncate text-base font-semibold">用户</div>
           </div>
-          <button type="button" className="flex h-10 w-10 items-center justify-center text-[#8E8E93]" aria-label="搜索" onClick={() => { /* filter focus via manage */ setManageOpen(true) }}>
+          <button type="button" className="flex h-10 w-10 items-center justify-center text-[var(--color-muted)]" aria-label="搜索" onClick={() => { /* filter focus via manage */ setManageOpen(true) }}>
             <Search size={20} />
           </button>
-          <button type="button" className="flex h-10 w-10 items-center justify-center text-[#8E8E93]" aria-label="通知">
+          <button type="button" className="flex h-10 w-10 items-center justify-center text-[var(--color-muted)]" aria-label="通知">
             <Bell size={20} />
           </button>
           <button
             type="button"
-            className="flex h-10 w-10 items-center justify-center text-[#8E8E93]"
+            className="flex h-10 w-10 items-center justify-center text-[var(--color-muted)]"
             aria-label="设置"
             onClick={() => go({ kind: 'module', id: 'settings' })}
           >
@@ -140,27 +140,27 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
                 onClick={() => go({ kind: 'smart', id })}
                 className={cn(
                   'mb-0.5 flex w-full min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] transition',
-                  active ? 'bg-[#3D2A1F] text-white' : 'text-white/90 hover:bg-white/5',
+                  active ? 'bg-brand/20 text-white' : 'text-white/90 hover:bg-white/5',
                 )}
               >
-                <span className="relative text-[#FF7A45]">
+                <span className="relative text-brand">
                   <Icon size={20} strokeWidth={1.75} />
                   {badge && (
-                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center pt-1 text-[9px] font-bold text-[#FF7A45]">
+                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center pt-1 text-[9px] font-bold text-brand">
                       {id === 'today' ? badge : ''}
                     </span>
                   )}
                 </span>
                 <span className="flex-1 text-left">{label}</span>
                 {typeof count === 'number' && count > 0 && (
-                  <span className="text-sm text-[#8E8E93]">{count}</span>
+                  <span className="text-sm text-[var(--color-muted)]">{count}</span>
                 )}
               </button>
             )
           })}
 
           {lists.filter((l) => !l.isInbox).length > 0 && (
-            <div className="mt-3 border-t border-[#2C2C2E] pt-2">
+            <div className="mt-3 border-t border-[var(--color-border)] pt-2">
               {lists
                 .filter((l) => !l.isInbox)
                 .map((l) => (
@@ -169,7 +169,7 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
                     type="button"
                     className={cn(
                       'mb-0.5 flex w-full min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-[15px]',
-                      isList(l.id) ? 'bg-[#3D2A1F]' : 'hover:bg-white/5',
+                      isList(l.id) ? 'bg-brand/20' : 'hover:bg-white/5',
                     )}
                     onClick={() => go({ kind: 'list', id: l.id })}
                   >
@@ -181,7 +181,7 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
           )}
         </nav>
 
-        <div className="flex items-center justify-between border-t border-[#2C2C2E] px-4 py-3">
+        <div className="flex items-center justify-between border-t border-[var(--color-border)] px-4 py-3">
           <button
             type="button"
             className="flex min-h-11 items-center gap-2 text-[15px] text-white/90"
@@ -205,7 +205,7 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
 
         {showAddList && (
           <form
-            className="border-t border-[#2C2C2E] px-3 py-2"
+            className="border-t border-[var(--color-border)] px-3 py-2"
             onSubmit={(e) => {
               e.preventDefault()
               if (!newListName.trim()) return
@@ -219,21 +219,21 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
               value={newListName}
               onChange={(e) => setNewListName(e.target.value)}
               placeholder="清单名称"
-              className="w-full rounded-lg bg-[#1C1C1E] px-3 py-2.5 text-sm outline-none ring-1 ring-[#FF7A45]/40"
+              className="w-full rounded-lg bg-[var(--color-card)] px-3 py-2.5 text-sm outline-none ring-1 ring-brand/40"
             />
           </form>
         )}
 
         {manageOpen && (
-          <div className="border-t border-[#2C2C2E] px-3 py-2">
+          <div className="border-t border-[var(--color-border)] px-3 py-2">
             <input
               value={filter.query}
               onChange={(e) => setFilter({ query: e.target.value })}
               placeholder="搜索任务…"
-              className="mb-2 w-full rounded-lg bg-[#1C1C1E] px-3 py-2 text-sm outline-none"
+              className="mb-2 w-full rounded-lg bg-[var(--color-card)] px-3 py-2 text-sm outline-none"
             />
             <div className="flex items-center justify-between">
-              <span className="text-xs text-[#8E8E93]">主题</span>
+              <span className="text-xs text-[var(--color-muted)]">主题</span>
               <ThemeToggle />
             </div>
           </div>
@@ -247,7 +247,7 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
     cn(
       'flex w-full min-h-11 items-center gap-2 rounded-lg px-3 py-2.5 text-sm transition',
       active
-        ? 'bg-[#FF7A45]/15 text-[#FF7A45]'
+        ? 'bg-brand/15 text-brand'
         : 'text-[var(--color-fg)] hover:bg-[var(--color-surface-2)]',
     )
 
@@ -261,7 +261,7 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
       }}
     >
       <div className="flex min-h-12 items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-2 font-semibold text-[#FF7A45]">
+        <div className="flex items-center gap-2 font-semibold text-brand">
           <CheckCircle2 size={22} />
           <span>滴答清单</span>
         </div>
@@ -275,7 +275,7 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
             value={filter.query}
             onChange={(e) => setFilter({ query: e.target.value })}
             placeholder="搜索任务…"
-            className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] py-2 pl-8 pr-3 text-sm outline-none focus:border-[#FF7A45]"
+            className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] py-2 pl-8 pr-3 text-sm outline-none focus:border-brand"
           />
         </div>
       </div>

@@ -4,7 +4,28 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#000000" />
     <title>滴答清单 · 复刻</title>
+    <script>
+      (function () {
+        try {
+          var theme = 'dark'
+          var raw = localStorage.getItem('dida-clone-storage')
+          if (raw) {
+            var parsed = JSON.parse(raw)
+            var t = (parsed.state && parsed.state.theme) || parsed.theme
+            if (t === 'light' || t === 'dark') theme = t
+          }
+          document.documentElement.classList.toggle('dark', theme === 'dark')
+          document.documentElement.style.colorScheme = theme
+          var meta = document.querySelector('meta[name="theme-color"]')
+          if (meta) meta.setAttribute('content', theme === 'dark' ? '#000000' : '#f5f5f7')
+        } catch (e) {
+          document.documentElement.classList.add('dark')
+          document.documentElement.style.colorScheme = 'dark'
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

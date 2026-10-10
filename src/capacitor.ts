@@ -1,7 +1,8 @@
 import { Capacitor } from '@capacitor/core'
 import { App } from '@capacitor/app'
-import { StatusBar, Style } from '@capacitor/status-bar'
+import { StatusBar } from '@capacitor/status-bar'
 import { Keyboard, KeyboardResize } from '@capacitor/keyboard'
+import { applyTheme, readPersistedTheme } from './lib/theme'
 
 /** Initialize Capacitor plugins when running as a native shell. */
 export async function initCapacitor() {
@@ -10,7 +11,7 @@ export async function initCapacitor() {
   try {
     // Draw edge-to-edge; CSS env(safe-area-inset-*) keeps chrome clear of notches / status bar.
     await StatusBar.setOverlaysWebView({ overlay: true })
-    await StatusBar.setStyle({ style: Style.Default })
+    applyTheme(readPersistedTheme())
   } catch {
     // StatusBar may be unavailable on some devices
   }

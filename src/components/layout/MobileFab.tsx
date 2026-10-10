@@ -178,14 +178,14 @@ export function MobileFab() {
         <Drawer.Portal>
           <Drawer.Overlay className="fixed inset-0 z-50 bg-black/50 md:hidden" />
           <Drawer.Content
-            className="fixed inset-x-0 bottom-0 z-50 flex max-h-[55vh] flex-col rounded-t-2xl bg-[var(--color-card)] outline-none dark:bg-[#1C1C1E] md:hidden"
+            className="fixed inset-x-0 bottom-0 z-50 flex max-h-[55vh] flex-col rounded-t-2xl bg-[var(--color-card)] outline-none md:hidden"
             style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom, 0px))' }}
             onOpenAutoFocus={(e) => {
               e.preventDefault()
               requestAnimationFrame(() => inputRef.current?.focus())
             }}
           >
-            <div className="mx-auto mt-2 mb-1 h-1 w-9 shrink-0 rounded-full bg-white/20" />
+            <div className="mx-auto mt-2 mb-1 h-1 w-9 shrink-0 rounded-full bg-[var(--color-muted)]/40" />
             <Drawer.Title className="sr-only">快速添加</Drawer.Title>
             <Drawer.Description className="sr-only">输入要做的事</Drawer.Description>
             <form
@@ -208,19 +208,19 @@ export function MobileFab() {
                 </div>
               )}
               <div className="mt-1 flex items-center gap-1 text-[var(--color-muted)]">
-                <button type="button" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-white/5" aria-label="日期">
+                <button type="button" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-[var(--color-surface-2)]" aria-label="日期">
                   <CalendarDays size={20} strokeWidth={1.75} />
                 </button>
-                <button type="button" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-white/5" aria-label="优先级">
+                <button type="button" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-[var(--color-surface-2)]" aria-label="优先级">
                   <Flag size={20} strokeWidth={1.75} />
                 </button>
-                <button type="button" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-white/5" aria-label="标签">
+                <button type="button" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-[var(--color-surface-2)]" aria-label="标签">
                   <Tag size={20} strokeWidth={1.75} />
                 </button>
-                <button type="button" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-white/5" aria-label="清单">
+                <button type="button" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-[var(--color-surface-2)]" aria-label="清单">
                   <Inbox size={20} strokeWidth={1.75} />
                 </button>
-                <button type="button" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-white/5" aria-label="更多">
+                <button type="button" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-[var(--color-surface-2)]" aria-label="更多">
                   <MoreHorizontal size={20} strokeWidth={1.75} />
                 </button>
                 <div className="flex-1" />

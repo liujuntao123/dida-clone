@@ -135,7 +135,7 @@ export function TaskItem({ task, compact = false }: { task: Task; compact?: bool
       className={cn(
         'group relative flex min-h-11 cursor-pointer items-start gap-2 px-3 py-2.5 transition',
         compact
-          ? 'rounded-xl hover:bg-white/5'
+          ? 'rounded-xl hover:bg-[var(--color-surface-2)]'
           : 'border-b border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-2)]',
         selected && 'bg-brand/10',
         pinned && !compact && 'border-l-2 border-l-amber-400',
@@ -216,7 +216,7 @@ export function TaskItem({ task, compact = false }: { task: Task; compact?: bool
     <div className="fixed inset-0 z-[90] flex items-end justify-center md:items-center" role="dialog" aria-modal>
       <button type="button" className="absolute inset-0 bg-black/40" aria-label="关闭" onClick={() => setMoveOpen(false)} />
       <div
-        className="relative z-10 w-full max-w-md rounded-t-2xl bg-[var(--color-card)] p-4 shadow-xl md:rounded-2xl dark:bg-[#1C1C1E]"
+        className="relative z-10 w-full max-w-md rounded-t-2xl bg-[var(--color-card)] p-4 shadow-xl md:rounded-2xl "
         style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom, 0px))' }}
       >
         <div className="mb-3 text-sm font-semibold">移动到清单</div>

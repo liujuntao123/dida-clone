@@ -56,7 +56,7 @@ function Column({ col, tasks }: { col: ColumnDef; tasks: Task[] }) {
     >
       <div className="mb-3 flex items-center justify-between px-1">
         <h3 className="text-sm font-semibold">{col.title}</h3>
-        <span className="rounded-full bg-[var(--color-surface-2)] px-2 text-xs text-[var(--color-muted)] dark:bg-black/40">
+        <span className="rounded-full bg-[var(--color-surface-2)] px-2 text-xs text-[var(--color-muted)] ">
           {tasks.length}
         </span>
       </div>

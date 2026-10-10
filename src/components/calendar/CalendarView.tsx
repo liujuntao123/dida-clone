@@ -45,7 +45,7 @@ export function CalendarView() {
   const monthTitle = month.format('M月')
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-[var(--color-surface-2)] text-[var(--color-fg)] dark:bg-black dark:text-white">
+    <div className="flex h-full flex-col overflow-hidden bg-[var(--color-surface-2)] text-[var(--color-fg)]">
       <div
         className="flex items-center justify-between px-4 pb-2"
         style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 0px))' }}

@@ -99,7 +99,7 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
   if (variant === 'mobile') {
     return (
       <aside
-        className="flex h-full w-full flex-col bg-black text-white"
+        className="flex h-full w-full flex-col bg-[var(--color-surface)] text-[var(--color-fg)]"
         style={{
           paddingTop: 'env(safe-area-inset-top, 0px)',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
@@ -140,7 +140,7 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
                 onClick={() => go({ kind: 'smart', id })}
                 className={cn(
                   'mb-0.5 flex w-full min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] transition',
-                  active ? 'bg-brand/20 text-white' : 'text-white/90 hover:bg-white/5',
+                  active ? 'bg-brand/20 text-[var(--color-fg)]' : 'text-[var(--color-fg)]/90 hover:bg-[var(--color-surface-2)]',
                 )}
               >
                 <span className="relative text-brand">
@@ -169,7 +169,7 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
                     type="button"
                     className={cn(
                       'mb-0.5 flex w-full min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-[15px]',
-                      isList(l.id) ? 'bg-brand/20' : 'hover:bg-white/5',
+                      isList(l.id) ? 'bg-brand/20' : 'hover:bg-[var(--color-surface-2)]',
                     )}
                     onClick={() => go({ kind: 'list', id: l.id })}
                   >
@@ -184,17 +184,17 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
         <div className="flex items-center justify-between border-t border-[var(--color-border)] px-4 py-3">
           <button
             type="button"
-            className="flex min-h-11 items-center gap-2 text-[15px] text-white/90"
+            className="flex min-h-11 items-center gap-2 text-[15px] text-[var(--color-fg)]/90"
             onClick={() => setShowAddList(true)}
           >
-            <span className="flex h-6 w-6 items-center justify-center rounded border border-white/30">
+            <span className="flex h-6 w-6 items-center justify-center rounded border border-[var(--color-border)]">
               <Plus size={14} />
             </span>
             添加
           </button>
           <button
             type="button"
-            className="flex min-h-11 items-center gap-2 text-[15px] text-white/90"
+            className="flex min-h-11 items-center gap-2 text-[15px] text-[var(--color-fg)]/90"
             onClick={() => setManageOpen((v) => !v)}
           >
             <MoreHorizontal size={18} />

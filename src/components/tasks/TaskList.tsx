@@ -71,7 +71,7 @@ function TaskGroupCard({
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="overflow-hidden rounded-2xl bg-[var(--color-card)] dark:bg-[#1C1C1E]">
+    <div className="overflow-hidden rounded-2xl bg-[var(--color-card)]">
       <button
         type="button"
         className="flex w-full min-h-11 items-center justify-between px-4 py-3"
@@ -168,7 +168,7 @@ export function TaskListPanel() {
           doneAbandonedCount > 0 && (
             <button
               type="button"
-              className="flex min-h-11 items-center justify-between rounded-2xl bg-[var(--color-card)] px-4 py-3 text-sm text-[var(--color-muted)] dark:bg-[#1C1C1E]"
+              className="flex min-h-11 items-center justify-between rounded-2xl bg-[var(--color-card)] px-4 py-3 text-sm text-[var(--color-muted)]"
               onClick={() => setActiveView({ kind: 'smart', id: 'completed' })}
             >
               <span>已完成 & 已放弃</span>
@@ -182,10 +182,10 @@ export function TaskListPanel() {
     )
 
   return (
-    <div className="flex h-full min-w-0 flex-1 bg-[var(--color-surface-2)] dark:bg-black">
+    <div className="flex h-full min-w-0 flex-1 bg-[var(--color-surface-2)]">
       <div className="flex min-w-0 flex-1 flex-col">
         <div
-          className="flex min-h-12 items-center gap-1 bg-[var(--color-surface)] px-2 dark:bg-black"
+          className="flex min-h-12 items-center gap-1 bg-[var(--color-surface)] px-2"
           style={{ paddingTop: 'max(8px, env(safe-area-inset-top, 0px))' }}
         >
           {isMobile && (

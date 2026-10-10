@@ -5,6 +5,7 @@ import { MobileFab } from './MobileFab'
 import { useAppStore } from '../../store/useAppStore'
 import { checkDueReminders, ensureNotificationPermission } from '../../lib/reminders'
 import { cn } from '../../lib/cn'
+import { applyTheme } from '../../lib/theme'
 import { ToastHost } from '../common/Toast'
 import { TaskDetailSheet } from '../tasks/TaskDetailSheet'
 
@@ -17,7 +18,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const markReminderNotified = useAppStore((s) => s.markReminderNotified)
 
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark')
+    applyTheme(theme)
   }, [theme])
 
   useEffect(() => {

@@ -57,12 +57,14 @@ export function TaskListPanel() {
 
   return (
     <div className="flex h-full min-w-0 flex-1">
-      <div className={`flex min-w-0 flex-1 flex-col ${selectedTaskId ? 'hidden md:flex' : 'flex'}`}>
+      {/* On mobile, list stays visible under the detail sheet */}
+      <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex min-h-12 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
           <h1 className="text-lg font-semibold">{title}</h1>
           <span className="text-xs text-[var(--color-muted)]">{tasks.length} 项</span>
         </div>
-        {showQuickAdd && <QuickAdd />}
+        {/* Desktop keeps inline QuickAdd; mobile uses FAB */}
+        {showQuickAdd && !isMobile && <QuickAdd />}
         {showQuickAdd && <FilterBar />}
         {activeView.kind === 'smart' && activeView.id === 'trash' && (
           <div className="border-b border-[var(--color-border)] px-3 py-2">
@@ -75,22 +77,22 @@ export function TaskListPanel() {
             </button>
           </div>
         )}
-        <div
-          className="flex-1 overflow-y-auto bg-[var(--color-surface)]"
-          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-        >
+        <div className="flex-1 overflow-y-auto bg-[var(--color-surface)] pb-4">
           {listBody}
         </div>
       </div>
 
-      {selectedTaskId ? (
-        <div className="flex h-full w-full md:w-auto">
-          <TaskDetail />
-        </div>
-      ) : (
-        <div className="hidden lg:flex">
-          <TaskDetail />
-        </div>
+      {/* Desktop / tablet side detail only */}
+      {!isMobile && (
+        selectedTaskId ? (
+          <div className="flex h-full">
+            <TaskDetail variant="panel" />
+          </div>
+        ) : (
+          <div className="hidden lg:flex">
+            <TaskDetail variant="panel" />
+          </div>
+        )
       )}
     </div>
   )

@@ -1,10 +1,13 @@
 import { useEffect } from 'react'
 import { Menu, X } from 'lucide-react'
 import { Sidebar } from './Sidebar'
+import { MobileBottomNav } from './MobileBottomNav'
+import { MobileFab } from './MobileFab'
 import { useAppStore } from '../../store/useAppStore'
 import { checkDueReminders, ensureNotificationPermission } from '../../lib/reminders'
 import { cn } from '../../lib/cn'
 import { ToastHost } from '../common/Toast'
+import { TaskDetailSheet } from '../tasks/TaskDetailSheet'
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const theme = useAppStore((s) => s.theme)
@@ -59,8 +62,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </button>
           <span className="font-semibold text-blue-600">滴答清单</span>
         </header>
-        <main className={cn('min-h-0 flex-1 overflow-hidden')}>{children}</main>
+        {/* pb for bottom nav on mobile; desktop unchanged */}
+        <main className={cn('min-h-0 flex-1 overflow-hidden')}>
+          {/* Reserve space for MobileBottomNav (h-14) + safe area; desktop no pad */}
+          <div className="h-full pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] md:pb-0">
+            {children}
+          </div>
+        </main>
       </div>
+
+      <MobileBottomNav />
+      <MobileFab />
+      <TaskDetailSheet />
       <ToastHost />
     </div>
   )

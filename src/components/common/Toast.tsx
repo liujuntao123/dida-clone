@@ -1,6 +1,8 @@
 import { useToastStore } from '../../store/useToastStore'
+import { useIsMobile } from '../../hooks/useIsMobile'
 
 export function ToastHost() {
+  const isMobile = useIsMobile()
   const message = useToastStore((s) => s.message)
   const undo = useToastStore((s) => s.undo)
   const undoLabel = useToastStore((s) => s.undoLabel)
@@ -11,7 +13,11 @@ export function ToastHost() {
   return (
     <div
       className="pointer-events-none fixed inset-x-0 z-[100] flex justify-center px-3"
-      style={{ bottom: 'max(16px, env(safe-area-inset-bottom, 0px))' }}
+      style={{
+        bottom: isMobile
+          ? 'max(16px, calc(3.5rem + 12px + env(safe-area-inset-bottom, 0px)))'
+          : 'max(16px, env(safe-area-inset-bottom, 0px))',
+      }}
       role="status"
     >
       <div className="pointer-events-auto flex max-w-md items-center gap-3 rounded-xl bg-slate-900 px-4 py-3 text-sm text-white shadow-lg dark:bg-slate-700">

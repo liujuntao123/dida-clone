@@ -40,6 +40,7 @@ export function Sidebar() {
   const addTag = useAppStore((s) => s.addTag)
   const setFilter = useAppStore((s) => s.setFilter)
   const filter = useAppStore((s) => s.filter)
+  const setSidebarOpen = useAppStore((s) => s.setSidebarOpen)
   const [newListName, setNewListName] = useState('')
   const [newTagName, setNewTagName] = useState('')
   const [showAddList, setShowAddList] = useState(false)
@@ -59,6 +60,11 @@ export function Sidebar() {
         ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300'
         : 'text-[var(--color-fg)] hover:bg-[var(--color-surface-2)]',
     )
+
+  const go = (view: Parameters<typeof setActiveView>[0]) => {
+    setActiveView(view)
+    setSidebarOpen(false)
+  }
 
   return (
     <aside
@@ -92,7 +98,7 @@ export function Sidebar() {
       <nav className="flex-1 overflow-y-auto px-2 pb-4">
         <div className="mb-1 px-2 text-xs font-medium text-[var(--color-muted)]">智能清单</div>
         {smartItems.map(({ id, label, icon: Icon }) => (
-          <button key={id} type="button" className={itemCls(isSmart(id))} onClick={() => setActiveView({ kind: 'smart', id })}>
+          <button key={id} type="button" className={itemCls(isSmart(id))} onClick={() => go({ kind: 'smart', id })}>
             <Icon size={16} />
             {label}
           </button>
@@ -125,7 +131,7 @@ export function Sidebar() {
           </form>
         )}
         {lists.map((l) => (
-          <button key={l.id} type="button" className={itemCls(isList(l.id))} onClick={() => setActiveView({ kind: 'list', id: l.id })}>
+          <button key={l.id} type="button" className={itemCls(isList(l.id))} onClick={() => go({ kind: 'list', id: l.id })}>
             <span className="h-2.5 w-2.5 rounded-full" style={{ background: l.color }} />
             {l.name}
           </button>
@@ -158,37 +164,37 @@ export function Sidebar() {
           </form>
         )}
         {tags.map((t) => (
-          <button key={t.id} type="button" className={itemCls(isTag(t.id))} onClick={() => setActiveView({ kind: 'tag', id: t.id })}>
+          <button key={t.id} type="button" className={itemCls(isTag(t.id))} onClick={() => go({ kind: 'tag', id: t.id })}>
             <TagIcon size={14} style={{ color: t.color }} />
             {t.name}
           </button>
         ))}
 
         <div className="mb-1 mt-4 px-2 text-xs font-medium text-[var(--color-muted)]">模块</div>
-        <button type="button" className={itemCls(isModule('calendar'))} onClick={() => setActiveView({ kind: 'module', id: 'calendar' })}>
+        <button type="button" className={itemCls(isModule('calendar'))} onClick={() => go({ kind: 'module', id: 'calendar' })}>
           <CalendarDays size={16} /> 日历
         </button>
-        <button type="button" className={itemCls(isModule('board'))} onClick={() => setActiveView({ kind: 'module', id: 'board' })}>
+        <button type="button" className={itemCls(isModule('board'))} onClick={() => go({ kind: 'module', id: 'board' })}>
           <SquareKanban size={16} /> 看板
         </button>
-        <button type="button" className={itemCls(isModule('quadrant'))} onClick={() => setActiveView({ kind: 'module', id: 'quadrant' })}>
+        <button type="button" className={itemCls(isModule('quadrant'))} onClick={() => go({ kind: 'module', id: 'quadrant' })}>
           <LayoutGrid size={16} /> 四象限
         </button>
-        <button type="button" className={itemCls(isModule('pomodoro'))} onClick={() => setActiveView({ kind: 'module', id: 'pomodoro' })}>
+        <button type="button" className={itemCls(isModule('pomodoro'))} onClick={() => go({ kind: 'module', id: 'pomodoro' })}>
           <Target size={16} /> 番茄专注
         </button>
 
         <div className="mb-1 mt-4 px-2 text-xs font-medium text-[var(--color-muted)]">其他</div>
-        <button type="button" className={itemCls(isSmart('completed'))} onClick={() => setActiveView({ kind: 'smart', id: 'completed' })}>
+        <button type="button" className={itemCls(isSmart('completed'))} onClick={() => go({ kind: 'smart', id: 'completed' })}>
           <CheckCircle2 size={16} /> 已完成
         </button>
-        <button type="button" className={itemCls(isSmart('abandoned'))} onClick={() => setActiveView({ kind: 'smart', id: 'abandoned' })}>
+        <button type="button" className={itemCls(isSmart('abandoned'))} onClick={() => go({ kind: 'smart', id: 'abandoned' })}>
           <Ban size={16} /> 已放弃
         </button>
-        <button type="button" className={itemCls(isSmart('trash'))} onClick={() => setActiveView({ kind: 'smart', id: 'trash' })}>
+        <button type="button" className={itemCls(isSmart('trash'))} onClick={() => go({ kind: 'smart', id: 'trash' })}>
           <Trash2 size={16} /> 垃圾桶
         </button>
-        <button type="button" className={itemCls(isModule('settings'))} onClick={() => setActiveView({ kind: 'module', id: 'settings' })}>
+        <button type="button" className={itemCls(isModule('settings'))} onClick={() => go({ kind: 'module', id: 'settings' })}>
           <Settings size={16} /> 设置
         </button>
       </nav>

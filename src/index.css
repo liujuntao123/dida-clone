@@ -1,0 +1,62 @@
+@import "tailwindcss";
+@import "react-day-picker/style.css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-brand: #3b82f6;
+  --color-brand-hover: #2563eb;
+  --color-surface: #ffffff;
+  --color-surface-2: #f8fafc;
+  --color-border: #e2e8f0;
+  --color-muted: #64748b;
+  --color-fg: #0f172a;
+  --font-sans: "Inter", "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+}
+
+.dark {
+  --color-surface: #0f172a;
+  --color-surface-2: #1e293b;
+  --color-border: #334155;
+  --color-muted: #94a3b8;
+  --color-fg: #f1f5f9;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-surface-2);
+  color: var(--color-fg);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* DayPicker theme tweaks */
+.rdp-root {
+  --rdp-accent-color: #3b82f6;
+  --rdp-accent-background-color: #dbeafe;
+  color: var(--color-fg);
+}
+
+.dark .rdp-root {
+  --rdp-accent-background-color: #1e3a5f;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}

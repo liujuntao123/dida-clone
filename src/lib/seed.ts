@@ -1,6 +1,6 @@
 import { dayjs } from './dates'
 import { INBOX_ID, LIST_COLORS } from './constants'
-import type { PomodoroSession, Tag, Task, TaskList } from '../types'
+import type { Tag, Task, TaskList } from '../types'
 
 const now = dayjs()
 
@@ -168,4 +168,3 @@ export const seedTasks: Task[] = [
   },
 ]
 
-export const seedSessions: PomodoroSession[] = []

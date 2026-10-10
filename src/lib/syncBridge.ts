@@ -15,7 +15,7 @@ export function getSyncableState(): SyncableState {
     lists: s.lists,
     tags: s.tags,
     tasks: s.tasks,
-    sessions: s.sessions,
+    sessions: [], // pomodoro removed; keep field for Worker protocol
     theme: s.theme,
     sortBy: s.sortBy,
     boardGroupBy: s.boardGroupBy,
@@ -29,8 +29,7 @@ export function applySyncableState(state: SyncableState) {
     lists: state.lists ?? [],
     tags: state.tags ?? [],
     tasks: state.tasks ?? [],
-    sessions: state.sessions ?? [],
-    theme: state.theme ?? 'light',
+    theme: state.theme ?? 'dark',
     sortBy: state.sortBy ?? 'due',
     boardGroupBy: state.boardGroupBy ?? 'priority',
     calendarMode: state.calendarMode ?? 'month',
@@ -74,17 +73,16 @@ export function startSyncRuntime(): () => void {
   // Debounce upload when persisted fields change
   const unsub = useAppStore.subscribe((state, prev) => {
     if (!isSyncConfigured()) return
-    const keys: (keyof SyncableState)[] = [
+    const keys = [
       'lists',
       'tags',
       'tasks',
-      'sessions',
       'theme',
       'sortBy',
       'boardGroupBy',
       'calendarMode',
       'notifiedReminders',
-    ]
+    ] as const
     const changed = keys.some((k) => state[k] !== prev[k])
     if (changed) {
       schedulePush(getSyncableState, applySyncableState)

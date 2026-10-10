@@ -1,6 +1,6 @@
 export type Priority = 0 | 1 | 2 | 3 // 0=无 1=低 2=中 3=高
 export type TaskStatus = 'todo' | 'done' | 'abandoned' | 'trashed'
-export type ViewMode = 'list' | 'board' | 'calendar' | 'quadrant' | 'pomodoro'
+export type ViewMode = 'list' | 'board' | 'calendar' | 'quadrant'
 export type SortBy = 'due' | 'priority' | 'created' | 'custom'
 export type BoardGroupBy = 'priority' | 'status'
 export type CalendarMode = 'month' | 'week'
@@ -52,6 +52,7 @@ export interface Tag {
   color: string
 }
 
+/** Kept for Cloudflare sync payload compatibility; frontend no longer uses sessions. */
 export interface PomodoroSession {
   id: string
   taskId?: string | null
@@ -74,7 +75,7 @@ export type ActiveView =
   | { kind: 'smart'; id: SmartListId }
   | { kind: 'list'; id: string }
   | { kind: 'tag'; id: string }
-  | { kind: 'module'; id: 'calendar' | 'board' | 'quadrant' | 'pomodoro' | 'settings' }
+  | { kind: 'module'; id: 'calendar' | 'board' | 'quadrant' | 'habits' | 'settings' }
 
 export interface FilterState {
   priorities: Priority[]

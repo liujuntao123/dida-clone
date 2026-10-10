@@ -6,6 +6,8 @@ import {
   Trash2,
   CalendarDays,
   FolderInput,
+  Square,
+  CheckSquare,
 } from 'lucide-react'
 import {
   LeadingActions,
@@ -33,7 +35,7 @@ function dueAtDay(offsetDays: number, preserveTime?: string | null) {
     .toISOString()
 }
 
-export function TaskItem({ task }: { task: Task }) {
+export function TaskItem({ task, compact = false }: { task: Task; compact?: boolean }) {
   const isMobile = useIsMobile()
   const selectedTaskId = useAppStore((s) => s.selectedTaskId)
   const setSelectedTaskId = useAppStore((s) => s.setSelectedTaskId)
@@ -131,22 +133,29 @@ export function TaskItem({ task }: { task: Task }) {
   const row = (
     <div
       className={cn(
-        'group relative flex min-h-11 cursor-pointer items-start gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 transition hover:bg-[var(--color-surface-2)]',
-        selected && 'bg-blue-50/60 dark:bg-blue-950/30',
-        pinned && 'border-l-2 border-l-amber-400',
+        'group relative flex min-h-11 cursor-pointer items-start gap-2 px-3 py-2.5 transition',
+        compact
+          ? 'rounded-xl hover:bg-white/5'
+          : 'border-b border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-2)]',
+        selected && (compact ? 'bg-[#FF7A45]/10' : 'bg-[#FF7A45]/10'),
+        pinned && !compact && 'border-l-2 border-l-amber-400',
       )}
       onClick={() => setSelectedTaskId(task.id)}
     >
       <button
         type="button"
-        className="mt-0.5 flex min-h-11 min-w-11 shrink-0 items-center justify-center text-[var(--color-muted)] hover:text-blue-500"
+        className="mt-0.5 flex min-h-10 min-w-10 shrink-0 items-center justify-center text-[var(--color-muted)] hover:text-[#FF7A45]"
         onClick={(e) => {
           e.stopPropagation()
           completeWithUndo()
         }}
         aria-label={done ? '取消完成' : '完成'}
       >
-        {done ? <CheckCircle2 size={20} className="text-green-500" /> : <Circle size={20} />}
+        {done ? (
+          compact ? <CheckSquare size={20} className="text-[#FF7A45]" /> : <CheckCircle2 size={20} className="text-green-500" />
+        ) : (
+          compact ? <Square size={20} strokeWidth={1.75} className="text-[#8E8E93]" /> : <Circle size={20} />
+        )}
       </button>
       <div className="min-w-0 flex-1 py-0.5">
         <div className={cn('flex items-start gap-1.5 text-sm', done && 'line-through text-[var(--color-muted)]')}>
@@ -218,7 +227,7 @@ export function TaskItem({ task }: { task: Task }) {
               type="button"
               className={cn(
                 'flex min-h-11 items-center gap-2 rounded-lg px-3 text-left text-sm hover:bg-[var(--color-surface-2)]',
-                l.id === task.listId && 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300',
+                l.id === task.listId && 'bg-[#FF7A45]/15 text-[#FF7A45]',
               )}
               onClick={() => {
                 const prev = task.listId

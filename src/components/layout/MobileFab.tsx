@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Plus } from 'lucide-react'
+import {
+  CalendarDays,
+  Flag,
+  Inbox,
+  Mic,
+  MoreHorizontal,
+  Plus,
+  Tag,
+} from 'lucide-react'
 import { Drawer } from 'vaul'
 import { useAppStore } from '../../store/useAppStore'
 import { dayjs, parseNaturalDate } from '../../lib/dates'
@@ -8,7 +16,7 @@ import { cn } from '../../lib/cn'
 const FAB_POS_KEY = 'dida-fab-pos'
 const FAB_SIZE = 56
 const BOTTOM_NAV = 56
-const EDGE_GAP = 12
+const EDGE_GAP = 16
 const TOP_MIN = 72
 
 type Side = 'left' | 'right'
@@ -130,13 +138,20 @@ export function MobileFab() {
   const left = live?.x ?? baseLeft
   const top = live?.y ?? pos.top
 
+  const submit = () => {
+    if (!value.trim()) return
+    quickAdd(value.trim())
+    setValue('')
+    setOpen(false)
+  }
+
   return (
     <>
       <button
         type="button"
         aria-label="添加任务"
         className={cn(
-          'fixed z-40 flex h-14 w-14 items-center justify-center rounded-full bg-blue-500 text-white shadow-lg shadow-blue-500/30 md:hidden',
+          'fixed z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#FF7A45] text-white shadow-lg shadow-[#FF7A45]/35 md:hidden',
           'active:scale-95 touch-none select-none',
           live && 'scale-105 opacity-95',
         )}
@@ -161,50 +176,64 @@ export function MobileFab() {
         }}
       >
         <Drawer.Portal>
-          <Drawer.Overlay className="fixed inset-0 z-50 bg-black/40 md:hidden" />
+          <Drawer.Overlay className="fixed inset-0 z-50 bg-black/50 md:hidden" />
           <Drawer.Content
-            className="fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-2xl bg-[var(--color-surface)] outline-none md:hidden"
-            style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom, 0px))' }}
+            className="fixed inset-x-0 bottom-0 z-50 flex max-h-[55vh] flex-col rounded-t-2xl bg-[#1C1C1E] outline-none md:hidden"
+            style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom, 0px))' }}
             onOpenAutoFocus={(e) => {
               e.preventDefault()
               requestAnimationFrame(() => inputRef.current?.focus())
             }}
           >
-            <div className="mx-auto mt-3 mb-2 h-1.5 w-10 shrink-0 rounded-full bg-slate-300 dark:bg-slate-600" />
-            <Drawer.Title className="px-4 pb-2 text-sm font-medium">快速添加</Drawer.Title>
-            <Drawer.Description className="sr-only">输入任务标题，支持自然语言日期</Drawer.Description>
+            <div className="mx-auto mt-2 mb-1 h-1 w-9 shrink-0 rounded-full bg-white/20" />
+            <Drawer.Title className="sr-only">快速添加</Drawer.Title>
+            <Drawer.Description className="sr-only">输入要做的事</Drawer.Description>
             <form
-              className="flex flex-col gap-2 px-4 pb-4"
+              className="flex flex-col gap-1 px-4 pb-3 pt-1"
               onSubmit={(e) => {
                 e.preventDefault()
-                if (!value.trim()) return
-                quickAdd(value.trim())
-                setValue('')
-                setOpen(false)
+                submit()
               }}
             >
               <input
                 ref={inputRef}
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                placeholder="添加任务，试试「明天 14:00 开会」"
-                className="min-h-12 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 text-base outline-none focus:border-blue-400"
+                placeholder="准备做什么？"
+                className="accent-caret min-h-12 w-full bg-transparent text-[17px] text-white outline-none placeholder:text-[#8E8E93]"
               />
               {preview?.dueAt && (
-                <div className="text-xs text-blue-500">
+                <div className="text-xs text-[#FF7A45]">
                   识别日期：{dayjs(preview.dueAt).format('M月D日 HH:mm')}
-                  {preview.cleanedTitle !== value.trim() && (
-                    <span className="text-[var(--color-muted)]"> · 标题「{preview.cleanedTitle}」</span>
-                  )}
                 </div>
               )}
-              <button
-                type="submit"
-                disabled={!value.trim()}
-                className="min-h-11 rounded-xl bg-blue-500 text-sm font-medium text-white disabled:opacity-40"
-              >
-                添加
-              </button>
+              <div className="mt-1 flex items-center gap-1 text-[#8E8E93]">
+                <button type="button" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-white/5" aria-label="日期">
+                  <CalendarDays size={20} strokeWidth={1.75} />
+                </button>
+                <button type="button" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-white/5" aria-label="优先级">
+                  <Flag size={20} strokeWidth={1.75} />
+                </button>
+                <button type="button" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-white/5" aria-label="标签">
+                  <Tag size={20} strokeWidth={1.75} />
+                </button>
+                <button type="button" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-white/5" aria-label="清单">
+                  <Inbox size={20} strokeWidth={1.75} />
+                </button>
+                <button type="button" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-white/5" aria-label="更多">
+                  <MoreHorizontal size={20} strokeWidth={1.75} />
+                </button>
+                <div className="flex-1" />
+                <button
+                  type="button"
+                  disabled
+                  className="flex h-10 w-10 items-center justify-center rounded-lg opacity-40"
+                  aria-label="语音输入（暂未开放）"
+                  title="语音输入即将开放"
+                >
+                  <Mic size={20} strokeWidth={1.75} />
+                </button>
+              </div>
             </form>
           </Drawer.Content>
         </Drawer.Portal>

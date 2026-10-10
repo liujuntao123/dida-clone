@@ -1,5 +1,4 @@
 import { useEffect } from 'react'
-import { Menu, X } from 'lucide-react'
 import { Sidebar } from './Sidebar'
 import { MobileBottomNav } from './MobileBottomNav'
 import { MobileFab } from './MobileFab'
@@ -35,36 +34,25 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-full bg-[var(--color-surface-2)] text-[var(--color-fg)]">
       {/* Desktop sidebar */}
-      <div className="hidden h-full md:flex">{<Sidebar />}</div>
+      <div className="hidden h-full md:flex">{<Sidebar variant="desktop" />}</div>
 
-      {/* Mobile drawer */}
+      {/* Mobile drawer — ~82% width, dimmed main behind */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
-          <button type="button" className="absolute inset-0 bg-black/40" aria-label="关闭侧栏" onClick={() => setSidebarOpen(false)} />
-          <div className="absolute inset-y-0 left-0 z-50 shadow-xl">
-            <Sidebar />
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/55"
+            aria-label="关闭侧栏"
+            onClick={() => setSidebarOpen(false)}
+          />
+          <div className="absolute inset-y-0 left-0 z-50 w-[82%] max-w-sm shadow-2xl">
+            <Sidebar variant="mobile" />
           </div>
         </div>
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header
-          className="flex min-h-12 items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-3 md:hidden"
-          style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 0px))', paddingBottom: '8px' }}
-        >
-          <button
-            type="button"
-            className="flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-[var(--color-surface-2)]"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            aria-label={sidebarOpen ? '关闭菜单' : '打开菜单'}
-          >
-            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-          <span className="font-semibold text-blue-600">滴答清单</span>
-        </header>
-        {/* pb for bottom nav on mobile; desktop unchanged */}
         <main className={cn('min-h-0 flex-1 overflow-hidden')}>
-          {/* Reserve space for MobileBottomNav (h-14) + safe area; desktop no pad */}
           <div className="h-full pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] md:pb-0">
             {children}
           </div>

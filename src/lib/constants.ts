@@ -1,7 +1,7 @@
 import type { Priority } from '../types'
 
 export const LIST_COLORS = [
-  '#3b82f6', // blue
+  '#FF7A45', // orange accent
   '#ef4444', // red
   '#f59e0b', // amber
   '#10b981', // emerald
@@ -29,5 +29,7 @@ export const PRIORITY_COLORS: Record<Priority, string> = {
 
 export const INBOX_ID = 'list-inbox'
 
-export const POMODORO_FOCUS_SEC = 25 * 60
-export const POMODORO_BREAK_SEC = 5 * 60
+/** Primary accent — matches TickTick-like orange */
+export const ACCENT = '#FF7A45'
+export const ACCENT_SOFT = '#F18F53'
+export const CARD_BG = '#1C1C1E'

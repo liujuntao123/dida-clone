@@ -20,7 +20,7 @@ export function QuickAdd() {
       }}
     >
       <div className="flex items-center gap-2">
-        <Plus size={18} className="text-blue-500" />
+        <Plus size={18} className="text-[#FF7A45]" />
         <input
           value={value}
           onChange={(e) => setValue(e.target.value)}
@@ -30,13 +30,13 @@ export function QuickAdd() {
         <button
           type="submit"
           disabled={!value.trim()}
-          className="min-h-11 rounded-lg bg-blue-500 px-3 py-2 text-sm text-white disabled:opacity-40 hover:bg-blue-600"
+          className="min-h-11 rounded-lg bg-[#FF7A45] px-3 py-2 text-sm text-white disabled:opacity-40 hover:bg-[#F18F53]"
         >
           添加
         </button>
       </div>
       {preview?.dueAt && (
-        <div className="pl-7 text-xs text-blue-500">
+        <div className="pl-7 text-xs text-[#FF7A45]">
           识别日期：{dayjs(preview.dueAt).format('M月D日 HH:mm')}
           {preview.cleanedTitle !== value.trim() && (
             <span className="text-[var(--color-muted)]"> · 标题「{preview.cleanedTitle}」</span>

@@ -1,160 +1,183 @@
 import { useMemo, useState } from 'react'
-import { DayPicker, type DayButtonProps } from 'react-day-picker'
-import { zhCN } from 'react-day-picker/locale'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  LayoutList,
+  MoreVertical,
+  Square,
+} from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
-import { dayjs, startOfWeek } from '../../lib/dates'
-import { PRIORITY_COLORS } from '../../lib/constants'
+import { dayjs } from '../../lib/dates'
 import { cn } from '../../lib/cn'
 import type { Task } from '../../types'
+import type { Dayjs } from 'dayjs'
 
-function tasksOnDay(tasks: Task[], day: Date): Task[] {
-  const key = dayjs(day).format('YYYY-MM-DD')
+const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
+
+function tasksOnDay(tasks: Task[], day: Dayjs): Task[] {
+  const key = day.format('YYYY-MM-DD')
   return tasks.filter((t) => t.status === 'todo' && t.dueAt && dayjs(t.dueAt).format('YYYY-MM-DD') === key)
 }
 
+function buildMonthCells(cursor: Dayjs) {
+  const start = cursor.startOf('month')
+  // Monday-first: day() 0=Sun ... convert
+  const startWeekday = (start.day() + 6) % 7
+  const gridStart = start.subtract(startWeekday, 'day')
+  return Array.from({ length: 42 }, (_, i) => gridStart.add(i, 'day'))
+}
+
 export function CalendarView() {
-  const mode = useAppStore((s) => s.calendarMode)
-  const setCalendarMode = useAppStore((s) => s.setCalendarMode)
   const cursor = useAppStore((s) => s.calendarCursor)
   const setCalendarCursor = useAppStore((s) => s.setCalendarCursor)
   const tasks = useAppStore((s) => s.tasks)
   const setSelectedTaskId = useAppStore((s) => s.setSelectedTaskId)
-  const setActiveView = useAppStore((s) => s.setActiveView)
-  const [selected, setSelected] = useState<Date>(dayjs(cursor).toDate())
+  const toggleComplete = useAppStore((s) => s.toggleComplete)
+  const [selected, setSelected] = useState(() => dayjs())
 
+  const month = dayjs(cursor)
   const todoTasks = useMemo(() => tasks.filter((t) => t.status === 'todo' && !t.parentId), [tasks])
+  const cells = useMemo(() => buildMonthCells(month), [month])
+  const dayTasks = tasksOnDay(todoTasks, selected)
 
-  const weekStart = startOfWeek(dayjs(selected))
-  const weekDays = Array.from({ length: 7 }, (_, i) => weekStart.add(i, 'day'))
-
-  const DayButton = (props: DayButtonProps) => {
-    const { day, modifiers, ...buttonProps } = props
-    const dayTasks = tasksOnDay(todoTasks, day.date)
-    return (
-      <button {...buttonProps} type="button" className={cn(buttonProps.className, 'relative min-h-16 w-full flex-col items-start p-1')}>
-        <span className={cn('text-xs', modifiers.today && 'font-bold text-blue-600')}>
-          {day.date.getDate()}
-        </span>
-        <div className="mt-0.5 flex w-full flex-col gap-0.5 overflow-hidden">
-          {dayTasks.slice(0, 3).map((t) => (
-            <span
-              key={t.id}
-              className="truncate rounded px-0.5 text-[10px] text-white"
-              style={{ background: PRIORITY_COLORS[t.priority] === '#9ca3af' ? '#3b82f6' : PRIORITY_COLORS[t.priority] }}
-              onClick={(e) => {
-                e.stopPropagation()
-                setSelectedTaskId(t.id)
-                setActiveView({ kind: 'smart', id: 'all' })
-              }}
-            >
-              {t.title}
-            </span>
-          ))}
-          {dayTasks.length > 3 && (
-            <span className="text-[10px] text-[var(--color-muted)]">+{dayTasks.length - 3}</span>
-          )}
-        </div>
-      </button>
-    )
-  }
+  const monthTitle = month.format('M月')
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-[var(--color-surface)]">
-      <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
-        <h1 className="text-lg font-semibold">日历</h1>
-        <div className="flex gap-1 rounded-lg border border-[var(--color-border)] p-0.5 text-sm">
-          <button
-            type="button"
-            className={cn('rounded-md px-3 py-1', mode === 'month' && 'bg-blue-500 text-white')}
-            onClick={() => setCalendarMode('month')}
-          >
-            月
+    <div className="flex h-full flex-col overflow-hidden bg-black text-white">
+      <div
+        className="flex items-center justify-between px-4 pb-2"
+        style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 0px))' }}
+      >
+        <h1 className="text-2xl font-semibold tracking-tight">{monthTitle}</h1>
+        <div className="flex items-center gap-1 text-[#8E8E93]">
+          <button type="button" className="flex h-10 w-10 items-center justify-center" aria-label="筛选">
+            <Filter size={20} strokeWidth={1.75} />
           </button>
-          <button
-            type="button"
-            className={cn('rounded-md px-3 py-1', mode === 'week' && 'bg-blue-500 text-white')}
-            onClick={() => setCalendarMode('week')}
-          >
-            周
+          <button type="button" className="flex h-10 w-10 items-center justify-center" aria-label="视图">
+            <LayoutList size={20} strokeWidth={1.75} />
+          </button>
+          <button type="button" className="flex h-10 w-10 items-center justify-center" aria-label="更多">
+            <MoreVertical size={20} strokeWidth={1.75} />
           </button>
         </div>
       </div>
 
-      {mode === 'month' ? (
-        <div className="flex-1 overflow-auto p-4">
-          <DayPicker
-            mode="single"
-            locale={zhCN}
-            month={dayjs(cursor).toDate()}
-            onMonthChange={(m) => setCalendarCursor(dayjs(m).toISOString())}
-            selected={selected}
-            onSelect={(d) => d && setSelected(d)}
-            showOutsideDays
-            className="w-full"
-            classNames={{
-              month_grid: 'w-full',
-              weekdays: 'flex w-full',
-              weekday: 'flex-1 text-center text-xs text-[var(--color-muted)] py-2',
-              weeks: 'w-full',
-              week: 'flex w-full min-h-20 border-t border-[var(--color-border)]',
-              day: 'flex-1 border-r border-[var(--color-border)] last:border-r-0',
+      <div className="px-2 pb-2">
+        <div className="mb-1 grid grid-cols-7">
+          {WEEKDAYS.map((w) => (
+            <div key={w} className="py-1 text-center text-xs text-[#8E8E93]">
+              {w}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-y-1">
+          {cells.map((d) => {
+            const inMonth = d.month() === month.month()
+            const isToday = d.isSame(dayjs(), 'day')
+            const isSelected = d.isSame(selected, 'day')
+            const hasTasks = tasksOnDay(todoTasks, d).length > 0
+            return (
+              <button
+                key={d.format('YYYY-MM-DD')}
+                type="button"
+                onClick={() => {
+                  setSelected(d)
+                  if (!d.isSame(month, 'month')) {
+                    setCalendarCursor(d.toISOString())
+                  }
+                }}
+                className="flex flex-col items-center py-1"
+              >
+                <span
+                  className={cn(
+                    'flex h-9 w-9 items-center justify-center rounded-full text-[15px]',
+                    !inMonth && 'text-white/25',
+                    inMonth && !isSelected && !isToday && 'text-white',
+                    isToday && !isSelected && 'font-semibold text-[#FF7A45]',
+                    isSelected && 'bg-[#FF7A45] font-semibold text-white',
+                  )}
+                >
+                  {d.date()}
+                </span>
+                {hasTasks && !isSelected && (
+                  <span className="mt-0.5 h-1 w-1 rounded-full bg-[#FF7A45]/80" />
+                )}
+              </button>
+            )
+          })}
+        </div>
+        <div className="mt-1 flex items-center justify-between px-2">
+          <button
+            type="button"
+            className="flex h-9 w-9 items-center justify-center text-[#8E8E93]"
+            onClick={() => setCalendarCursor(month.subtract(1, 'month').toISOString())}
+            aria-label="上一月"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <button
+            type="button"
+            className="text-xs text-[#FF7A45]"
+            onClick={() => {
+              const now = dayjs()
+              setCalendarCursor(now.toISOString())
+              setSelected(now)
             }}
-            components={{ DayButton }}
-          />
+          >
+            今天
+          </button>
+          <button
+            type="button"
+            className="flex h-9 w-9 items-center justify-center text-[#8E8E93]"
+            onClick={() => setCalendarCursor(month.add(1, 'month').toISOString())}
+            aria-label="下一月"
+          >
+            <ChevronRight size={18} />
+          </button>
         </div>
-      ) : (
-        <div className="flex flex-1 flex-col overflow-auto">
-          <div className="flex items-center justify-between px-4 py-2">
-            <button
-              type="button"
-              className="rounded p-1 hover:bg-[var(--color-surface-2)]"
-              onClick={() => setSelected(dayjs(selected).subtract(1, 'week').toDate())}
-            >
-              <ChevronLeft size={18} />
-            </button>
-            <span className="text-sm font-medium">
-              {weekStart.format('M月D日')} – {weekStart.add(6, 'day').format('M月D日')}
-            </span>
-            <button
-              type="button"
-              className="rounded p-1 hover:bg-[var(--color-surface-2)]"
-              onClick={() => setSelected(dayjs(selected).add(1, 'week').toDate())}
-            >
-              <ChevronRight size={18} />
-            </button>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto border-t border-[#2C2C2E]">
+        {dayTasks.length === 0 ? (
+          <div className="flex h-full flex-col items-center justify-center gap-3 px-6 pb-20 text-center">
+            <div className="relative flex h-24 w-24 items-center justify-center rounded-2xl bg-[#1C1C1E]">
+              <CalendarDays size={40} className="text-white/25" strokeWidth={1.25} />
+              <span className="absolute bottom-3 right-3 flex h-7 w-7 items-center justify-center rounded-full bg-[#FF7A45]">
+                <ChevronRight size={14} className="text-white" />
+              </span>
+            </div>
+            <p className="text-base text-white/90">你这一天没有任务</p>
+            <p className="text-sm text-[#8E8E93]">放松一下吧</p>
           </div>
-          <div className="grid flex-1 grid-cols-7 gap-px border-t border-[var(--color-border)] bg-[var(--color-border)]">
-            {weekDays.map((d) => {
-              const dayTasks = tasksOnDay(todoTasks, d.toDate())
-              return (
-                <div key={d.format('YYYY-MM-DD')} className="min-h-48 bg-[var(--color-surface)] p-2">
-                  <div className={cn('mb-2 text-center text-sm', d.isSame(dayjs(), 'day') && 'font-bold text-blue-600')}>
-                    <div className="text-xs text-[var(--color-muted)]">{d.format('ddd')}</div>
-                    {d.format('D')}
-                  </div>
-                  <div className="space-y-1">
-                    {dayTasks.map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        className="block w-full truncate rounded px-1.5 py-1 text-left text-xs text-white"
-                        style={{ background: PRIORITY_COLORS[t.priority] === '#9ca3af' ? '#3b82f6' : PRIORITY_COLORS[t.priority] }}
-                        onClick={() => {
-                          setSelectedTaskId(t.id)
-                          setActiveView({ kind: 'smart', id: 'all' })
-                        }}
-                      >
-                        {t.title}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
+        ) : (
+          <ul className="space-y-1 px-3 py-3">
+            {dayTasks.map((t) => (
+              <li key={t.id}>
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-3 rounded-xl bg-[#1C1C1E] px-3 py-3 text-left"
+                  onClick={() => setSelectedTaskId(t.id)}
+                >
+                  <span
+                    role="checkbox"
+                    aria-checked={false}
+                    className="text-[#8E8E93]"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleComplete(t.id)
+                    }}
+                  >
+                    <Square size={20} strokeWidth={1.75} />
+                  </span>
+                  <span className="flex-1 text-[15px]">{t.title}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   )
 }

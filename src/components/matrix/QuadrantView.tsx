@@ -10,27 +10,64 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core'
 import { useState } from 'react'
+import { MoreVertical, Square, CheckSquare, List } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import type { Priority, Task } from '../../types'
 import { cn } from '../../lib/cn'
 
 /**
- * Simplified Eisenhower mapping by priority:
- * 高(3) → 重要且紧急
- * 中(2) → 重要不紧急
- * 低(1) → 不重要但紧急
- * 无(0) → 不重要不紧急
+ * Eisenhower by priority:
+ * 高(3) → I 重要且紧急
+ * 中(2) → II 重要不紧急
+ * 低(1) → III 不重要但紧急
+ * 无(0) → IV 不重要不紧急
  */
-const QUADRANTS: { id: string; title: string; subtitle: string; priority: Priority; color: string }[] = [
-  { id: 'q1', title: '重要且紧急', subtitle: '高优先级', priority: 3, color: 'bg-red-50 dark:bg-red-950/30 border-red-200' },
-  { id: 'q2', title: '重要不紧急', subtitle: '中优先级', priority: 2, color: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200' },
-  { id: 'q3', title: '不重要但紧急', subtitle: '低优先级', priority: 1, color: 'bg-blue-50 dark:bg-blue-950/30 border-blue-200' },
-  { id: 'q4', title: '不重要不紧急', subtitle: '无优先级', priority: 0, color: 'bg-slate-50 dark:bg-slate-900/40 border-slate-200' },
+const QUADRANTS: {
+  id: string
+  roman: string
+  title: string
+  priority: Priority
+  labelClass: string
+  badgeClass: string
+}[] = [
+  {
+    id: 'q1',
+    roman: 'I',
+    title: '重要且紧急',
+    priority: 3,
+    labelClass: 'text-red-400',
+    badgeClass: 'bg-red-500/90 text-white',
+  },
+  {
+    id: 'q2',
+    roman: 'II',
+    title: '重要不紧急',
+    priority: 2,
+    labelClass: 'text-amber-400',
+    badgeClass: 'bg-amber-400/90 text-black',
+  },
+  {
+    id: 'q3',
+    roman: 'III',
+    title: '不重要但紧急',
+    priority: 1,
+    labelClass: 'text-sky-400',
+    badgeClass: 'bg-sky-500/90 text-white',
+  },
+  {
+    id: 'q4',
+    roman: 'IV',
+    title: '不重要不紧急',
+    priority: 0,
+    labelClass: 'text-emerald-400',
+    badgeClass: 'bg-emerald-500/90 text-white',
+  },
 ]
 
-function Card({ task }: { task: Task }) {
+function Card({ task, listName }: { task: Task; listName?: string }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id })
   const setSelectedTaskId = useAppStore((s) => s.setSelectedTaskId)
+  const toggleComplete = useAppStore((s) => s.toggleComplete)
   const style = transform
     ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, opacity: isDragging ? 0.4 : 1 }
     : { opacity: isDragging ? 0.4 : 1 }
@@ -40,10 +77,34 @@ function Card({ task }: { task: Task }) {
       style={style}
       {...attributes}
       {...listeners}
-      className="mb-2 cursor-grab rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm shadow-sm"
+      className="mb-2 cursor-grab rounded-lg px-1 py-1.5 active:cursor-grabbing"
       onClick={() => setSelectedTaskId(task.id)}
     >
-      {task.title}
+      <div className="flex items-start gap-2">
+        <button
+          type="button"
+          className="mt-0.5 text-[#8E8E93]"
+          onClick={(e) => {
+            e.stopPropagation()
+            toggleComplete(task.id)
+          }}
+        >
+          {task.status === 'done' ? (
+            <CheckSquare size={18} className="text-[#FF7A45]" />
+          ) : (
+            <Square size={18} strokeWidth={1.75} />
+          )}
+        </button>
+        <div className="min-w-0 flex-1">
+          <div className="text-[14px] leading-snug text-white">{task.title}</div>
+          {listName && (
+            <div className="mt-1 flex items-center gap-1 text-[11px] text-[#8E8E93]">
+              <List size={11} />
+              {listName}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
@@ -51,24 +112,48 @@ function Card({ task }: { task: Task }) {
 function Quad({
   q,
   tasks,
+  lists,
 }: {
   q: (typeof QUADRANTS)[number]
   tasks: Task[]
+  lists: { id: string; name: string }[]
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: q.id })
+  const [expanded, setExpanded] = useState(false)
+  const visible = expanded ? tasks : tasks.slice(0, 4)
   return (
     <div
       ref={setNodeRef}
-      className={cn('flex min-h-64 flex-col rounded-xl border p-3', q.color, isOver && 'ring-2 ring-blue-400')}
+      className={cn(
+        'flex min-h-[42vw] flex-col rounded-2xl bg-[#1C1C1E] p-3 md:min-h-64',
+        isOver && 'ring-2 ring-[#FF7A45]/60',
+      )}
     >
-      <div className="mb-2">
-        <div className="font-semibold text-sm">{q.title}</div>
-        <div className="text-xs text-[var(--color-muted)]">{q.subtitle}</div>
+      <div className="mb-2 flex items-center gap-2">
+        <span className={cn('flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold', q.badgeClass)}>
+          {q.roman}
+        </span>
+        <span className={cn('text-[13px] font-medium', q.labelClass)}>{q.title}</span>
       </div>
-      <div className="flex-1">
-        {tasks.map((t) => (
-          <Card key={t.id} task={t} />
-        ))}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {tasks.length === 0 ? (
+          <div className="flex h-full min-h-16 items-center justify-center text-sm text-[#8E8E93]">没有任务</div>
+        ) : (
+          <>
+            {visible.map((t) => (
+              <Card key={t.id} task={t} listName={lists.find((l) => l.id === t.listId)?.name} />
+            ))}
+            {tasks.length > 4 && !expanded && (
+              <button
+                type="button"
+                className="w-full py-1 text-center text-xs text-[#8E8E93]"
+                onClick={() => setExpanded(true)}
+              >
+                查看更多
+              </button>
+            )}
+          </>
+        )}
       </div>
     </div>
   )
@@ -76,6 +161,7 @@ function Quad({
 
 export function QuadrantView() {
   const tasks = useAppStore((s) => s.tasks)
+  const lists = useAppStore((s) => s.lists)
   const setTaskPriority = useAppStore((s) => s.setTaskPriority)
   const [activeId, setActiveId] = useState<string | null>(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
@@ -100,25 +186,35 @@ export function QuadrantView() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-[var(--color-surface)]">
-      <div className="border-b border-[var(--color-border)] px-4 py-3">
-        <h1 className="text-lg font-semibold">四象限</h1>
-        <p className="text-xs text-[var(--color-muted)]">拖拽任务到其他象限可更改优先级</p>
+    <div className="flex h-full flex-col bg-black text-white">
+      <div
+        className="flex items-center justify-between px-4 pb-2"
+        style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 0px))' }}
+      >
+        <h1 className="text-xl font-semibold">四象限</h1>
+        <button type="button" className="flex h-10 w-10 items-center justify-center text-[#8E8E93]" aria-label="更多">
+          <MoreVertical size={20} />
+        </button>
       </div>
-      <div className="flex-1 overflow-auto p-4">
+      <div className="flex-1 overflow-auto px-2 pb-4">
         <DndContext
           sensors={sensors}
           onDragStart={(e: DragStartEvent) => setActiveId(String(e.active.id))}
           onDragEnd={onDragEnd}
         >
-          <div className="grid h-full grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-2 gap-2">
             {QUADRANTS.map((q) => (
-              <Quad key={q.id} q={q} tasks={base.filter((t) => t.priority === q.priority)} />
+              <Quad
+                key={q.id}
+                q={q}
+                tasks={base.filter((t) => t.priority === q.priority)}
+                lists={lists}
+              />
             ))}
           </div>
           <DragOverlay>
             {activeTask ? (
-              <div className="rounded-lg border bg-[var(--color-surface)] px-3 py-2 shadow-lg">{activeTask.title}</div>
+              <div className="rounded-lg bg-[#1C1C1E] px-3 py-2 text-sm shadow-lg">{activeTask.title}</div>
             ) : null}
           </DragOverlay>
         </DndContext>

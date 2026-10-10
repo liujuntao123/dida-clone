@@ -6,7 +6,6 @@ import type {
   CalendarMode,
   ChecklistItem,
   FilterState,
-  PomodoroSession,
   Priority,
   RepeatRule,
   SortBy,
@@ -20,13 +19,12 @@ import type {
 import { INBOX_ID } from '../lib/constants'
 import { uid } from '../lib/id'
 import { dayjs, isToday, isTomorrow, isWithinNext7Days, nextRepeatDate, parseNaturalDate } from '../lib/dates'
-import { seedLists, seedSessions, seedTags, seedTasks } from '../lib/seed'
+import { seedLists, seedTags, seedTasks } from '../lib/seed'
 
 interface AppState {
   lists: TaskList[]
   tags: Tag[]
   tasks: Task[]
-  sessions: PomodoroSession[]
   theme: ThemeMode
   activeView: ActiveView
   selectedTaskId: string | null
@@ -77,7 +75,6 @@ interface AppState {
   setChecklist: (taskId: string, items: ChecklistItem[]) => void
   toggleChecklistItem: (taskId: string, itemId: string) => void
 
-  addPomodoroSession: (s: Omit<PomodoroSession, 'id'> & { id?: string }) => void
   markReminderNotified: (taskId: string) => void
 
   getVisibleTasks: () => Task[]
@@ -137,8 +134,7 @@ export const useAppStore = create<AppState>()(
       lists: seedLists,
       tags: seedTags,
       tasks: seedTasks,
-      sessions: seedSessions,
-      theme: 'light',
+      theme: 'dark',
       activeView: { kind: 'smart', id: 'today' },
       selectedTaskId: null,
       listViewMode: 'list',
@@ -363,14 +359,6 @@ export const useAppStore = create<AppState>()(
         })
       },
 
-      addPomodoroSession: (s) =>
-        set({
-          sessions: [
-            ...get().sessions,
-            { id: s.id ?? uid('pomo'), taskId: s.taskId ?? null, startedAt: s.startedAt, durationSec: s.durationSec, completed: s.completed },
-          ],
-        }),
-
       markReminderNotified: (taskId) =>
         set({ notifiedReminders: [...new Set([...get().notifiedReminders, taskId])] }),
 
@@ -433,13 +421,27 @@ export const useAppStore = create<AppState>()(
         lists: s.lists,
         tags: s.tags,
         tasks: s.tasks,
-        sessions: s.sessions,
         theme: s.theme,
+        activeView: s.activeView,
         sortBy: s.sortBy,
         boardGroupBy: s.boardGroupBy,
         calendarMode: s.calendarMode,
         notifiedReminders: s.notifiedReminders,
       }),
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<AppState> & { sessions?: unknown }
+        const { sessions: _drop, ...rest } = p
+        const merged = { ...current, ...rest } as AppState
+        // Migrate away from removed pomodoro module view
+        const av = merged.activeView as ActiveView | { kind: 'module'; id: string }
+        if (av?.kind === 'module' && (av as { id: string }).id === 'pomodoro') {
+          merged.activeView = { kind: 'smart', id: 'today' }
+        }
+        if ((merged.listViewMode as string) === 'pomodoro') {
+          merged.listViewMode = 'list'
+        }
+        return merged
+      },
     },
   ),
 )

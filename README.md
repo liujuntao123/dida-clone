@@ -113,6 +113,7 @@ curl -s -X PUT -H "Authorization: Bearer $KEY" -H "Content-Type: application/jso
 | 样式 | Tailwind CSS v4 |
 | 状态 / 持久化 | Zustand (+ persist) |
 | 云同步 | Cloudflare Worker (Hono) + D1 |
+| 安卓壳 | Capacitor 8 + GitHub Actions (assembleDebug) |
 | 日期 | dayjs + chrono-node |
 | 日历 | react-day-picker |
 | 拖拽 | @dnd-kit |
@@ -128,15 +129,53 @@ curl -s -X PUT -H "Authorization: Bearer $KEY" -H "Content-Type: application/jso
 
 习惯、倒数日、协作、时间线、多用户 OAuth、附件等。
 
-### 安卓（后续）
+### 安卓（Capacitor + GitHub Actions）
 
-可用 Capacitor 包 Web，再在 GitHub Actions 里跑 Gradle 出 APK；本仓库暂未接入。
+用官方 [Capacitor](https://capacitorjs.com/) 把 Web 包进 Android WebView；在 GitHub Actions 上出 **debug APK**（无需本机 Android Studio）。
+
+#### 本地（可选）
+
+需本机 JDK 21 + Android SDK。
+
+```bash
+npm install
+npm run build:android   # = npm run build && npx cap sync android
+npx cap open android    # 用 Android Studio 打开
+# 或：
+cd android && ./gradlew assembleDebug
+# APK: android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+#### 用 GitHub Actions 出包（推荐）
+
+1. 打开仓库 **Actions** → **Build Android APK**
+2. 点 **Run workflow**（或 push 到 `main` 且改了前端/`android/`/workflow 相关路径也会自动跑）
+3. 跑完后在该次 run 的 **Artifacts** 下载 `app-debug`
+4. 解压得到 `app-debug.apk`，传到手机安装（需允许「未知来源」）
+
+也可 CLI 触发：
+
+```bash
+gh workflow run android.yml --repo liujuntao123/dida-clone
+gh run watch --repo liujuntao123/dida-clone
+```
+
+#### App 内云同步
+
+安装后打开 App → **设置**，填入与 Web 相同的 Sync API Base URL + Access Key，即可与浏览器/其他设备同步（API 为 HTTPS `workers.dev`）。
+
+#### Release / 上架说明
+
+当前 CI 只打 **debug 签名** APK，方便自用安装，**不能直接上架** Google Play。  
+若要 release：在本机或 CI secrets 配置自己的 keystore（`*.jks` / 密码等 **切勿提交到 Git**），再改 workflow 跑 `assembleRelease` 并配置 `signingConfigs`。
 
 ## 目录结构
 
 ```
 src/           # 前端
+android/       # Capacitor Android 工程（提交到 Git，供 CI）
 worker/        # Cloudflare Worker + D1 schema
+.github/workflows/android.yml  # 打 debug APK
 screenshots/   # 界面截图
 ```
 
@@ -146,3 +185,4 @@ screenshots/   # 界面截图
 - 子任务 2 级。
 - 云同步为整包状态 + revision，非细粒度 CRDT；冲突需手动选云端或强制上传。
 - Access Key 存 localStorage，勿在公共电脑长期登录。
+- 安卓包为 debug 签名，自用安装即可；未上架应用商店；未配置 release keystore。

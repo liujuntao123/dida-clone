@@ -1,0 +1,29 @@
+import { Capacitor } from '@capacitor/core'
+import { App } from '@capacitor/app'
+import { StatusBar, Style } from '@capacitor/status-bar'
+import { Keyboard, KeyboardResize } from '@capacitor/keyboard'
+
+/** Initialize Capacitor plugins when running as a native shell. */
+export async function initCapacitor() {
+  if (!Capacitor.isNativePlatform()) return
+
+  try {
+    await StatusBar.setStyle({ style: Style.Default })
+  } catch {
+    // StatusBar may be unavailable on some devices
+  }
+
+  try {
+    await Keyboard.setResizeMode({ mode: KeyboardResize.Body })
+  } catch {
+    // Keyboard plugin optional
+  }
+
+  App.addListener('backButton', ({ canGoBack }) => {
+    if (canGoBack) {
+      window.history.back()
+    } else {
+      App.exitApp()
+    }
+  })
+}

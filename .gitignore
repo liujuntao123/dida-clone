@@ -28,3 +28,8 @@ dist-ssr
 .dev.vars
 worker/.dev.vars
 worker/node_modules
+
+# Android / Capacitor
+*.jks
+*.keystore
+.capacitor/

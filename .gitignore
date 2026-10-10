@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Sync credentials / local secrets
+.sync-credentials.local
+.dev.vars
+worker/.dev.vars
+worker/node_modules

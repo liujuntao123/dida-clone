@@ -5,6 +5,7 @@ import { BoardView } from './components/board/BoardView'
 import { QuadrantView } from './components/matrix/QuadrantView'
 import { PomodoroTimer } from './components/pomodoro/PomodoroTimer'
 import { SettingsPage } from './pages/SettingsPage'
+import { SyncBootstrap } from './components/common/SyncBootstrap'
 import { useAppStore } from './store/useAppStore'
 
 function MainContent() {
@@ -30,8 +31,11 @@ function MainContent() {
 
 export default function App() {
   return (
-    <AppLayout>
-      <MainContent />
-    </AppLayout>
+    <>
+      <SyncBootstrap />
+      <AppLayout>
+        <MainContent />
+      </AppLayout>
+    </>
   )
 }

@@ -1,7 +1,25 @@
+import { useEffect, useState } from 'react'
 import { useAppStore } from '../store/useAppStore'
 import { ensureNotificationPermission } from '../lib/reminders'
 import { LIST_COLORS } from '../lib/constants'
 import { ThemeToggle } from '../components/common/ThemeToggle'
+import { loadSyncConfig, saveSyncConfig, isSyncConfigured } from '../lib/syncConfig'
+import {
+  subscribeSyncStatus,
+  getSyncStatus,
+  healthCheck,
+  type SyncStatus,
+} from '../lib/sync'
+import {
+  doPull,
+  doPush,
+  doForcePush,
+  doFullSync,
+  applyRemoteOverwrite,
+  SyncConflictError,
+} from '../lib/syncBridge'
+import type { SyncableState } from '../lib/sync'
+import dayjs from 'dayjs'
 
 export function SettingsPage() {
   const lists = useAppStore((s) => s.lists)
@@ -10,6 +28,79 @@ export function SettingsPage() {
   const tags = useAppStore((s) => s.tags)
   const deleteTag = useAppStore((s) => s.deleteTag)
   const theme = useAppStore((s) => s.theme)
+
+  const [apiBaseUrl, setApiBaseUrl] = useState('')
+  const [accessKey, setAccessKey] = useState('')
+  const [revision, setRevision] = useState(0)
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null)
+  const [status, setStatus] = useState<SyncStatus>(getSyncStatus())
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+  const [conflict, setConflict] = useState<{
+    remote: { revision: number; state: SyncableState | null }
+  } | null>(null)
+
+  useEffect(() => {
+    const cfg = loadSyncConfig()
+    setApiBaseUrl(cfg.apiBaseUrl)
+    setAccessKey(cfg.accessKey)
+    setRevision(cfg.revision)
+    setLastSyncedAt(cfg.lastSyncedAt)
+    return subscribeSyncStatus((s) => {
+      setStatus(s)
+      const latest = loadSyncConfig()
+      setRevision(latest.revision)
+      setLastSyncedAt(latest.lastSyncedAt)
+    })
+  }, [])
+
+  const persistConfig = () => {
+    saveSyncConfig({
+      apiBaseUrl: apiBaseUrl.trim(),
+      accessKey: accessKey.trim(),
+    })
+    setMessage('已保存同步配置（仅存本机）')
+  }
+
+  const run = async (fn: () => Promise<void>, okMsg: string) => {
+    setBusy(true)
+    setMessage(null)
+    setConflict(null)
+    try {
+      persistConfig()
+      await fn()
+      const cfg = loadSyncConfig()
+      setRevision(cfg.revision)
+      setLastSyncedAt(cfg.lastSyncedAt)
+      setMessage(okMsg)
+    } catch (e) {
+      if (e instanceof SyncConflictError) {
+        setConflict({
+          remote: { revision: e.remote.revision, state: e.remote.state as SyncableState | null },
+        })
+        setMessage('检测到冲突：云端版本较新')
+      } else {
+        setMessage(e instanceof Error ? e.message : String(e))
+      }
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const statusText = (() => {
+    switch (status.kind) {
+      case 'idle':
+        return '空闲'
+      case 'syncing':
+        return status.action === 'pull' ? '拉取中…' : status.action === 'force' ? '强制上传中…' : '上传中…'
+      case 'ok':
+        return `已同步 · rev ${status.revision}`
+      case 'conflict':
+        return '冲突'
+      case 'error':
+        return `错误：${status.message}`
+    }
+  })()
 
   return (
     <div className="h-full overflow-auto bg-[var(--color-surface)] p-6">
@@ -20,6 +111,145 @@ export function SettingsPage() {
         <div className="flex items-center justify-between rounded-xl border border-[var(--color-border)] px-4 py-3">
           <span className="text-sm">当前主题：{theme === 'light' ? '浅色' : '深色'}</span>
           <ThemeToggle />
+        </div>
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-3 text-sm font-medium text-[var(--color-muted)]">云同步（Cloudflare）</h2>
+        <div className="space-y-3 rounded-xl border border-[var(--color-border)] p-4">
+          <p className="text-xs text-[var(--color-muted)]">
+            单用户 self-host：在 Cloudflare Worker 设置 ACCESS_KEY，下方填入 API 地址与密钥即可多端同步。
+            密钥仅保存在本机 localStorage，不会写入 Git。
+          </p>
+          <label className="block text-sm">
+            <span className="mb-1 block text-[var(--color-muted)]">Sync API Base URL</span>
+            <input
+              type="url"
+              value={apiBaseUrl}
+              onChange={(e) => setApiBaseUrl(e.target.value)}
+              placeholder="https://dida-clone-sync.xxx.workers.dev"
+              className="w-full rounded-lg border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm outline-none focus:border-blue-500"
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block text-[var(--color-muted)]">Access Key</span>
+            <input
+              type="password"
+              value={accessKey}
+              onChange={(e) => setAccessKey(e.target.value)}
+              placeholder="与 Worker 的 ACCESS_KEY 一致"
+              autoComplete="off"
+              className="w-full rounded-lg border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm outline-none focus:border-blue-500"
+            />
+          </label>
+          <div className="flex flex-wrap gap-2 text-xs text-[var(--color-muted)]">
+            <span>状态：{statusText}</span>
+            <span>·</span>
+            <span>revision：{revision}</span>
+            <span>·</span>
+            <span>
+              上次同步：
+              {lastSyncedAt ? dayjs(lastSyncedAt).format('YYYY-MM-DD HH:mm:ss') : '尚未同步'}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm disabled:opacity-50"
+              onClick={() => {
+                persistConfig()
+                setMessage('已保存')
+              }}
+            >
+              保存配置
+            </button>
+            <button
+              type="button"
+              disabled={busy || !apiBaseUrl.trim()}
+              className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm disabled:opacity-50"
+              onClick={() =>
+                void (async () => {
+                  setBusy(true)
+                  const ok = await healthCheck(apiBaseUrl.trim())
+                  setMessage(ok ? '健康检查通过' : '健康检查失败（无法连通）')
+                  setBusy(false)
+                })()
+              }
+            >
+              测试连接
+            </button>
+            <button
+              type="button"
+              disabled={busy || !isSyncConfigured({ ...loadSyncConfig(), apiBaseUrl, accessKey })}
+              className="rounded-lg bg-blue-500 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+              onClick={() => void run(doFullSync, '立即同步完成')}
+            >
+              立即同步
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm disabled:opacity-50"
+              onClick={() => void run(doPull, '已从云端拉取')}
+            >
+              拉取
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm disabled:opacity-50"
+              onClick={() => void run(doPush, '已上传到云端')}
+            >
+              上传
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              className="rounded-lg border border-amber-500/50 px-3 py-1.5 text-sm text-amber-600 disabled:opacity-50"
+              onClick={() => {
+                if (!confirm('强制上传会覆盖云端数据，确定？')) return
+                void run(doForcePush, '已强制覆盖云端')
+              }}
+            >
+              强制上传
+            </button>
+          </div>
+          {message && (
+            <p className="text-xs text-[var(--color-muted)]">{message}</p>
+          )}
+          {conflict && (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+              <p className="mb-2">云端 revision = {conflict.remote.revision}，请选择：</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="rounded-lg bg-blue-500 px-3 py-1.5 text-white"
+                  onClick={() => {
+                    if (conflict.remote.state) {
+                      applyRemoteOverwrite(conflict.remote.state, conflict.remote.revision)
+                      setRevision(conflict.remote.revision)
+                      setLastSyncedAt(new Date().toISOString())
+                      setMessage('已采用云端数据')
+                    }
+                    setConflict(null)
+                  }}
+                >
+                  用云端
+                </button>
+                <button
+                  type="button"
+                  className="rounded-lg border border-amber-500/50 px-3 py-1.5 text-amber-700"
+                  onClick={() => {
+                    setConflict(null)
+                    void run(doForcePush, '已强制上传本地')
+                  }}
+                >
+                  强制上传本地
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 

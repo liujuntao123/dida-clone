@@ -1,11 +1,12 @@
 # 滴答清单 · Web 复刻（P0 + P1）
 
-基于 Vite + React 18 + TypeScript + Tailwind CSS 的滴答清单风格任务管理应用。数据本地持久化（Zustand + localStorage），无需后端。
+基于 Vite + React + TypeScript + Tailwind CSS 的滴答清单风格任务管理应用。  
+本地 Zustand + localStorage；可选 **Cloudflare Worker + D1** 做单用户云同步（self-host）。
 
 ## 启动
 
 ```bash
-cd /workspace/dida-clone
+cd dida-clone
 npm install
 npm run dev
 ```
@@ -19,6 +20,91 @@ npm run preview
 
 浏览器打开终端提示的本地地址（默认 `http://localhost:5173`）。
 
+## 云同步（Cloudflare）
+
+单用户、Access Key 鉴权，适合私人 self-host。多设备填同一 Worker URL + Key 即可同步。
+
+### 架构
+
+```
+前端 (Zustand persist)
+    │  Authorization: Bearer <ACCESS_KEY>
+    ▼
+Cloudflare Worker  dida-clone-sync
+    │
+    ▼
+D1  dida-clone-db  (表 app_state：整包 JSON + revision)
+```
+
+API：
+
+| 方法 | 路径 | 鉴权 | 说明 |
+|------|------|------|------|
+| GET | `/api/health` | 否 | 健康检查 |
+| GET | `/api/state` | 是 | 拉取 `{ revision, updatedAt, state }` |
+| PUT | `/api/state` | 是 | 带 `revision` 乐观锁上传；落后则 409 |
+| POST | `/api/state/force` | 是 | 强制覆盖云端 |
+
+请求头任选其一：`Authorization: Bearer <key>` 或 `X-Access-Key: <key>`。
+
+### 部署 Worker
+
+前置：已安装 [Wrangler](https://developers.cloudflare.com/workers/wrangler/)，并 `wrangler login`（或设置 `CLOUDFLARE_API_TOKEN`）。
+
+```bash
+cd worker
+npm install
+
+# 若尚未创建 D1（只需一次）
+npx wrangler d1 create dida-clone-db
+# 把返回的 database_id 写入 wrangler.toml
+
+# 建表
+npx wrangler d1 execute dida-clone-db --remote --file=schema.sql
+
+# 部署
+npx wrangler deploy
+
+# 设置 Access Key（强随机，勿提交到 Git）
+openssl rand -base64 32
+printf '%s' '你的密钥' | npx wrangler secret put ACCESS_KEY
+```
+
+部署后地址形如：`https://dida-clone-sync.<subdomain>.workers.dev`。
+
+本地凭据可写在仓库根目录 `.sync-credentials.local`（已 gitignore）：
+
+```
+WORKER_URL=https://dida-clone-sync.xxx.workers.dev
+ACCESS_KEY=...
+```
+
+### 在设置页填写
+
+1. 打开应用 → 侧栏 **设置**
+2. **Sync API Base URL**：Worker 根地址（不要带尾斜杠路径以外的内容；填到 `.workers.dev` 即可）
+3. **Access Key**：与 `wrangler secret put ACCESS_KEY` 相同
+4. **保存配置** → **测试连接** → **立即同步**
+
+行为：
+
+- 启动后若已配置：自动拉取
+- 本地变更后约 2 秒 debounce 上传
+- 冲突时提示选择「用云端」或「强制上传本地」
+
+### 手动测 API
+
+```bash
+BASE=https://dida-clone-sync.xxx.workers.dev
+KEY=你的密钥
+
+curl -s "$BASE/api/health"
+curl -s -H "Authorization: Bearer $KEY" "$BASE/api/state"
+curl -s -X PUT -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+  -d '{"revision":0,"state":{"lists":[],"tags":[],"tasks":[],"sessions":[],"theme":"light"}}' \
+  "$BASE/api/state"
+```
+
 ## 技术栈
 
 | 用途 | 库 |
@@ -26,61 +112,37 @@ npm run preview
 | 框架 | Vite + React + TypeScript |
 | 样式 | Tailwind CSS v4 |
 | 状态 / 持久化 | Zustand (+ persist) |
-| 路由 | react-router-dom（已接入，当前以侧栏视图切换为主） |
-| 日期 | dayjs |
-| 自然语言日期 | chrono-node（中文 `chrono.zh`） |
+| 云同步 | Cloudflare Worker (Hono) + D1 |
+| 日期 | dayjs + chrono-node |
 | 日历 | react-day-picker |
-| 拖拽 | @dnd-kit/core + sortable |
+| 拖拽 | @dnd-kit |
 | Markdown | react-markdown + remark-gfm |
-| 图标 | lucide-react |
-| 类名 | clsx + tailwind-merge |
 
 ## 功能对照
 
-### P0
+### P0 / P1
 
-- [x] 收集箱 + 普通清单 CRUD（颜色预设）
-- [x] 智能清单：收集箱、今天、明天、最近7天、全部
-- [x] 任务 CRUD：标题、日期时间、优先级、清单、完成/删除
-- [x] 任务详情 + 列表勾选完成
-- [x] 列表视图 + 按日期/优先级排序
-- [x] 自然语言日期识别（chrono-node 中文）
-- [x] 基础提醒（Notification API + 轮询）
-- [x] 快速添加栏
-- [x] 移动端抽屉侧栏 / 桌面三栏（侧栏 \| 列表 \| 详情）
-
-### P1
-
-- [x] 标签、子任务（2 级）、检查事项、备注（Markdown 预览）
-- [x] 重复规则：每天/每周/每月/自定义间隔；完成后生成下一次
-- [x] 日历：月视图（react-day-picker）+ 周视图
-- [x] 看板：按优先级/状态列，@dnd-kit 拖拽换列
-- [x] 四象限：优先级映射，拖拽改优先级
-- [x] 番茄专注：25+5，可关联任务，本地记录时长
-- [x] 搜索 + 过滤器（优先级/清单/标签）
-- [x] 浅色/深色主题
-- [x] 已完成、垃圾桶（软删除/恢复/清空）、放弃状态
+见此前清单：智能清单、任务详情、识日期、提醒、标签/子任务、日历月周、看板、四象限、番茄、搜索过滤、深浅色等。
 
 ### 明确不做（P2）
 
-习惯、倒数日、课表、协作、时间线、并列显示、微信/邮件集成、附件、AI、小组件、多主题包等。
+习惯、倒数日、协作、时间线、多用户 OAuth、附件等。
+
+### 安卓（后续）
+
+可用 Capacitor 包 Web，再在 GitHub Actions 里跑 Gradle 出 APK；本仓库暂未接入。
 
 ## 目录结构
 
 ```
-src/
-  components/   # layout / tasks / calendar / board / matrix / pomodoro / common
-  pages/        # SettingsPage
-  store/        # Zustand store
-  lib/          # dates / reminders / seed / cn / constants
-  types/        # 共享类型
+src/           # 前端
+worker/        # Cloudflare Worker + D1 schema
+screenshots/   # 界面截图
 ```
 
 ## 已知限制
 
-- 提醒仅在页面打开时生效（浏览器轮询）；需用户授予通知权限。
-- 子任务仅支持 2 级（父 → 子），不做更深嵌套。
-- 自然语言日期依赖 chrono-node 中文规则，极口语化表达可能识别不全。
-- 无云同步 / 多端账号；刷新后靠 localStorage。
-- 看板「自定义状态列」简化为待办/已完成/已放弃；未做完全自由列配置。
-- Markdown 为预览子集，非所见即所得编辑器。
+- 提醒仅在页面打开时生效；需通知权限。
+- 子任务 2 级。
+- 云同步为整包状态 + revision，非细粒度 CRDT；冲突需手动选云端或强制上传。
+- Access Key 存 localStorage，勿在公共电脑长期登录。

@@ -1,0 +1,12 @@
+name = "dida-clone-sync"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "dida-clone-db"
+database_id = "b27b26cf-c9dc-4aed-a898-cf46026ed817"
+
+# Set secret after deploy:
+#   printf '%s' 'YOUR_KEY' | npx wrangler secret put ACCESS_KEY

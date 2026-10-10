@@ -1,5 +1,24 @@
 apply plugin: 'com.android.application'
 
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+// CI: env vars from GitHub Secrets (after decoding keystore to a file)
+def ciStoreFile = System.getenv("ANDROID_KEYSTORE_PATH")
+def ciStorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+def ciKeyAlias = System.getenv("ANDROID_KEY_ALIAS")
+def ciKeyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+def hasCiSigning = ciStoreFile != null && !ciStoreFile.isEmpty() &&
+        ciStorePassword != null && ciKeyAlias != null && ciKeyPassword != null
+def hasLocalSigning = keystorePropertiesFile.exists() &&
+        keystoreProperties['storeFile'] != null &&
+        keystoreProperties['storePassword'] != null &&
+        keystoreProperties['keyAlias'] != null &&
+        keystoreProperties['keyPassword'] != null
+
 android {
     namespace = "com.dida.clone"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -8,7 +27,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0"
+        versionName "0.1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,10 +35,28 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (hasCiSigning) {
+                storeFile file(ciStoreFile)
+                storePassword ciStorePassword
+                keyAlias ciKeyAlias
+                keyPassword ciKeyPassword
+            } else if (hasLocalSigning) {
+                storeFile rootProject.file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (hasCiSigning || hasLocalSigning) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }

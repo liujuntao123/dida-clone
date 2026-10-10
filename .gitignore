@@ -33,3 +33,12 @@ worker/node_modules
 *.jks
 *.keystore
 .capacitor/
+
+# Local Android release backup (never commit)
+.android-release/
+artifacts/
+keystore.properties
+android/keystore.properties
+android/app/keystore.properties
+*.apk
+*.aab

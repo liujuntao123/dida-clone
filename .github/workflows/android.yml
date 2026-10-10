@@ -2,18 +2,20 @@ name: Build Android APK
 
 on:
   workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create a GitHub Release and attach the APK'
+        required: false
+        default: false
+        type: boolean
+      release_tag:
+        description: 'Tag for GitHub Release (e.g. v0.1.0). Used when create_release is true.'
+        required: false
+        default: 'v0.1.0'
+        type: string
   push:
     branches: [main]
-    paths:
-      - 'android/**'
-      - 'src/**'
-      - 'public/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'capacitor.config.ts'
-      - 'vite.config.ts'
-      - 'index.html'
-      - '.github/workflows/android.yml'
+    tags: ['v*']
 
 concurrency:
   group: android-${{ github.ref }}
@@ -21,12 +23,13 @@ concurrency:
 
 jobs:
   build:
-    name: assembleDebug
+    name: assembleRelease
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      contents: write
 
     env:
-      # GitHub-hosted runners ship with Android SDK
       ANDROID_HOME: /usr/local/lib/android/sdk
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
 
@@ -59,7 +62,6 @@ jobs:
       - name: Install Android SDK packages
         run: |
           set -euo pipefail
-          # Prefer cmdline-tools/latest, fall back to versioned dirs
           SDKMANAGER=""
           if [ -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
             SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
@@ -76,16 +78,103 @@ jobs:
           yes | "$SDKMANAGER" --licenses >/tmp/sdk-licenses.txt || true
           "$SDKMANAGER" "platform-tools" "platforms;android-36" "build-tools;35.0.0"
 
-      - name: Assemble debug APK
-        working-directory: android
+      - name: Decode release keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          set -euo pipefail
+          if [ -z "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+            echo "Missing secret ANDROID_KEYSTORE_BASE64"
+            exit 1
+          fi
+          mkdir -p android/keystore
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/keystore/dida-release.jks
+          echo "ANDROID_KEYSTORE_PATH=$GITHUB_WORKSPACE/android/keystore/dida-release.jks" >> "$GITHUB_ENV"
 
-      - name: Upload APK artifact
+      - name: Assemble release APK + AAB
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          ./gradlew assembleRelease bundleRelease --no-daemon --stacktrace
+
+      - name: Prepare release artifacts
+        id: prep
+        run: |
+          set -euo pipefail
+          mkdir -p dist-android
+          APK_SRC=$(find android/app/build/outputs/apk/release -name '*.apk' | head -1)
+          AAB_SRC=$(find android/app/build/outputs/bundle/release -name '*.aab' | head -1)
+          if [ -z "$APK_SRC" ]; then
+            echo "Release APK not found"
+            find android/app/build/outputs -type f || true
+            exit 1
+          fi
+          cp "$APK_SRC" dist-android/app-release.apk
+          if [ -n "$AAB_SRC" ]; then
+            cp "$AAB_SRC" dist-android/app-release.aab
+          fi
+          ls -la dist-android/
+          echo "apk_path=dist-android/app-release.apk" >> "$GITHUB_OUTPUT"
+
+      - name: Upload release APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: app-release
+          path: |
+            dist-android/app-release.apk
+            dist-android/app-release.aab
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 90
+
+      - name: Resolve release tag
+        id: tag
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.create_release }}" == "true" ]]; then
+            TAG="${{ inputs.release_tag }}"
+            if [[ ! "$TAG" =~ ^v ]]; then
+              TAG="v${TAG}"
+            fi
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            echo "tag=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create GitHub Release
+        if: steps.tag.outputs.should_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.tag }}
+          body: |
+            ## dida-clone ${{ steps.tag.outputs.tag }}
+
+            Self-host 滴答清单复刻 · release 签名 APK。
+
+            ### 安装
+            1. 下载 `app-release.apk` 并安装到 Android 设备
+            2. 打开 App → 设置，填写 Cloudflare 同步 URL 与 Access Key
+
+            ### 产物
+            - `app-release.apk` — 直接安装
+            - `app-release.aab` — 可选（应用商店格式）
+
+            签名为自用 release keystore；更新时请使用同一签名。
+          files: |
+            dist-android/app-release.apk
+            dist-android/app-release.aab
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

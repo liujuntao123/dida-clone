@@ -113,7 +113,7 @@ curl -s -X PUT -H "Authorization: Bearer $KEY" -H "Content-Type: application/jso
 | 样式 | Tailwind CSS v4 |
 | 状态 / 持久化 | Zustand (+ persist) |
 | 云同步 | Cloudflare Worker (Hono) + D1 |
-| 安卓壳 | Capacitor 8 + GitHub Actions (assembleDebug) |
+| 安卓壳 | Capacitor 8 + GitHub Actions (assembleRelease) |
 | 日期 | dayjs + chrono-node |
 | 日历 | react-day-picker |
 | 拖拽 | @dnd-kit |
@@ -131,43 +131,46 @@ curl -s -X PUT -H "Authorization: Bearer $KEY" -H "Content-Type: application/jso
 
 ### 安卓（Capacitor + GitHub Actions）
 
-用官方 [Capacitor](https://capacitorjs.com/) 把 Web 包进 Android WebView；在 GitHub Actions 上出 **debug APK**（无需本机 Android Studio）。
+用官方 [Capacitor](https://capacitorjs.com/) 把 Web 包进 Android WebView；在 GitHub Actions 上出 **release 签名 APK / AAB**（无需本机 Android Studio）。
+
+签名密钥存在仓库 **GitHub Secrets**（`ANDROID_KEYSTORE_BASE64` 等），**切勿把 `.jks` / 密码提交到 Git**。本机备份目录：`.android-release/`（已 gitignore）。
 
 #### 本地（可选）
 
-需本机 JDK 21 + Android SDK。
+需本机 JDK 21 + Android SDK，以及本地 `android/keystore.properties`（指向 `.android-release/dida-release.jks`，已 gitignore）。
 
 ```bash
 npm install
 npm run build:android   # = npm run build && npx cap sync android
-npx cap open android    # 用 Android Studio 打开
-# 或：
-cd android && ./gradlew assembleDebug
-# APK: android/app/build/outputs/apk/debug/app-debug.apk
+cd android && ./gradlew assembleRelease
+# APK: android/app/build/outputs/apk/release/app-release.apk
 ```
 
 #### 用 GitHub Actions 出包（推荐）
 
 1. 打开仓库 **Actions** → **Build Android APK**
-2. 点 **Run workflow**（或 push 到 `main` 且改了前端/`android/`/workflow 相关路径也会自动跑）
-3. 跑完后在该次 run 的 **Artifacts** 下载 `app-debug`
-4. 解压得到 `app-debug.apk`，传到手机安装（需允许「未知来源」）
+2. 点 **Run workflow**
+   - 默认：只上传 artifact `app-release`（APK + AAB）
+   - 勾选 `create_release` 并填 `release_tag`（如 `v0.1.0`）：额外创建 **GitHub Release** 并附上 APK
+3. 跑完后在该次 run 的 **Artifacts** 下载 `app-release`，或到 **Releases** 页下载
 
-也可 CLI 触发：
+也可 CLI：
 
 ```bash
+# 仅打 release APK artifact
 gh workflow run android.yml --repo liujuntao123/dida-clone
-gh run watch --repo liujuntao123/dida-clone
+
+# 打包并创建 GitHub Release
+gh workflow run android.yml --repo liujuntao123/dida-clone \
+  -f create_release=true -f release_tag=v0.1.0
+
+# 或推送 tag
+git tag v0.1.0 && git push origin v0.1.0
 ```
 
 #### App 内云同步
 
 安装后打开 App → **设置**，填入与 Web 相同的 Sync API Base URL + Access Key，即可与浏览器/其他设备同步（API 为 HTTPS `workers.dev`）。
-
-#### Release / 上架说明
-
-当前 CI 只打 **debug 签名** APK，方便自用安装，**不能直接上架** Google Play。  
-若要 release：在本机或 CI secrets 配置自己的 keystore（`*.jks` / 密码等 **切勿提交到 Git**），再改 workflow 跑 `assembleRelease` 并配置 `signingConfigs`。
 
 ## 目录结构
 
@@ -175,7 +178,7 @@ gh run watch --repo liujuntao123/dida-clone
 src/           # 前端
 android/       # Capacitor Android 工程（提交到 Git，供 CI）
 worker/        # Cloudflare Worker + D1 schema
-.github/workflows/android.yml  # 打 debug APK
+.github/workflows/android.yml  # 打 release APK / Release
 screenshots/   # 界面截图
 ```
 
@@ -185,4 +188,4 @@ screenshots/   # 界面截图
 - 子任务 2 级。
 - 云同步为整包状态 + revision，非细粒度 CRDT；冲突需手动选云端或强制上传。
 - Access Key 存 localStorage，勿在公共电脑长期登录。
-- 安卓包为 debug 签名，自用安装即可；未上架应用商店；未配置 release keystore。
+- 安卓为自签 release；更新请始终用同一 keystore。未专门适配 Google Play 上架流程。

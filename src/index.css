@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "react-day-picker/style.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -88,6 +87,12 @@ textarea:focus {
 .swipe-task-list {
   width: 100%;
 }
+
+/* Drawer sheet height — dvh with vh fallback for older WebViews */
+.sheet-92 {
+  height: 92vh;
+  height: 92dvh;
+}
 .swipeable-list-item {
   background: transparent;
 }
@@ -102,6 +107,88 @@ textarea:focus {
 /* Orange caret for quick-add / detail inputs */
 .accent-caret {
   caret-color: var(--color-brand);
+}
+
+/* Markdown rendering for task notes (react-markdown output) */
+.md-note > *:first-child {
+  margin-top: 0;
+}
+.md-note > *:last-child {
+  margin-bottom: 0;
+}
+.md-note h1,
+.md-note h2,
+.md-note h3,
+.md-note h4 {
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 1em 0 0.4em;
+  color: var(--color-fg);
+}
+.md-note h1 { font-size: 1.15em; }
+.md-note h2 { font-size: 1.08em; }
+.md-note h3,
+.md-note h4 { font-size: 1em; }
+.md-note p {
+  margin: 0.5em 0;
+}
+.md-note ul,
+.md-note ol {
+  margin: 0.5em 0;
+  padding-left: 1.4em;
+}
+.md-note ul { list-style: disc; }
+.md-note ol { list-style: decimal; }
+.md-note li { margin: 0.2em 0; }
+.md-note li > input[type="checkbox"] {
+  margin-right: 0.4em;
+}
+.md-note code {
+  font-size: 0.9em;
+  background: var(--color-surface-2);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+}
+.md-note pre {
+  background: var(--color-surface-2);
+  border-radius: 8px;
+  padding: 0.75em;
+  overflow-x: auto;
+  margin: 0.5em 0;
+}
+.md-note pre code {
+  background: transparent;
+  padding: 0;
+}
+.md-note blockquote {
+  border-left: 3px solid var(--color-border);
+  padding-left: 0.75em;
+  margin: 0.5em 0;
+  color: var(--color-muted);
+}
+.md-note a {
+  color: var(--color-brand);
+  text-decoration: underline;
+}
+.md-note table {
+  border-collapse: collapse;
+  margin: 0.5em 0;
+  font-size: 0.95em;
+}
+.md-note th,
+.md-note td {
+  border: 1px solid var(--color-border);
+  padding: 0.3em 0.6em;
+  text-align: left;
+}
+.md-note hr {
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  margin: 1em 0;
+}
+.md-note img {
+  max-width: 100%;
+  border-radius: 8px;
 }
 
 /* Shared focus for form controls */

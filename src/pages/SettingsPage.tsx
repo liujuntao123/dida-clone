@@ -182,7 +182,7 @@ export function SettingsPage() {
             <button
               type="button"
               disabled={busy || !isSyncConfigured({ ...loadSyncConfig(), apiBaseUrl, accessKey })}
-              className="rounded-xl bg-brand px-3 py-2 text-sm text-white hover:bg-brand-hover disabled:opacity-50"
+              className="min-h-11 rounded-xl bg-brand px-3 py-2 text-sm text-white hover:bg-brand-hover disabled:opacity-50"
               onClick={() => void run(doFullSync, '立即同步完成')}
             >
               立即同步

@@ -1,11 +1,9 @@
 import { useMemo, useState } from 'react'
 import {
   CalendarDays,
+  CheckSquare,
   ChevronLeft,
   ChevronRight,
-  Filter,
-  LayoutList,
-  MoreVertical,
   Square,
 } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
@@ -42,7 +40,7 @@ export function CalendarView() {
   const cells = useMemo(() => buildMonthCells(month), [month])
   const dayTasks = tasksOnDay(todoTasks, selected)
 
-  const monthTitle = month.format('M月')
+  const monthTitle = month.format(month.year() === dayjs().year() ? 'M月' : 'YYYY年M月')
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-[var(--color-surface-2)] text-[var(--color-fg)]">
@@ -51,17 +49,6 @@ export function CalendarView() {
         style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 0px))' }}
       >
         <h1 className="text-2xl font-semibold tracking-tight">{monthTitle}</h1>
-        <div className="flex items-center gap-1 text-[var(--color-muted)]">
-          <button type="button" className="flex h-10 w-10 items-center justify-center" aria-label="筛选">
-            <Filter size={20} strokeWidth={1.75} />
-          </button>
-          <button type="button" className="flex h-10 w-10 items-center justify-center" aria-label="视图">
-            <LayoutList size={20} strokeWidth={1.75} />
-          </button>
-          <button type="button" className="flex h-10 w-10 items-center justify-center" aria-label="更多">
-            <MoreVertical size={20} strokeWidth={1.75} />
-          </button>
-        </div>
       </div>
 
       <div className="px-2 pb-2">
@@ -154,24 +141,21 @@ export function CalendarView() {
         ) : (
           <ul className="space-y-1 px-3 py-3">
             {dayTasks.map((t) => (
-              <li key={t.id}>
+              <li key={t.id} className="flex items-center gap-3 rounded-xl bg-[var(--color-card)] px-3 py-3">
                 <button
                   type="button"
-                  className="flex w-full items-center gap-3 rounded-xl bg-[var(--color-card)] px-3 py-3 text-left"
+                  aria-label={t.status === 'done' ? '标为未完成' : '完成'}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center text-[var(--color-muted)] hover:text-brand"
+                  onClick={() => toggleComplete(t.id)}
+                >
+                  {t.status === 'done' ? <CheckSquare size={20} className="text-brand" /> : <Square size={20} strokeWidth={1.75} />}
+                </button>
+                <button
+                  type="button"
+                  className="min-h-11 flex-1 text-left text-[15px]"
                   onClick={() => setSelectedTaskId(t.id)}
                 >
-                  <span
-                    role="checkbox"
-                    aria-checked={false}
-                    className="text-[var(--color-muted)]"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      toggleComplete(t.id)
-                    }}
-                  >
-                    <Square size={20} strokeWidth={1.75} />
-                  </span>
-                  <span className="flex-1 text-[15px]">{t.title}</span>
+                  {t.title}
                 </button>
               </li>
             ))}

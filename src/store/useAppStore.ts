@@ -60,7 +60,7 @@ interface AppState {
   quickAdd: (raw: string, overrides?: Partial<Task>) => Task
   addTask: (partial: Partial<Task> & { title: string }) => Task
   updateTask: (id: string, patch: Partial<Task>) => void
-  toggleComplete: (id: string) => void
+  toggleComplete: (id: string) => string | null
   softDelete: (id: string) => void
   restoreTask: (id: string) => void
   permanentlyDelete: (id: string) => void
@@ -195,15 +195,13 @@ export const useAppStore = create<AppState>()(
 
       quickAdd: (raw, overrides = {}) => {
         const { cleanedTitle, dueAt } = parseNaturalDate(raw)
+        const { activeView } = get()
+        // Adding from a list view targets that list; smart views go to inbox.
+        const listId = activeView.kind === 'list' ? activeView.id : INBOX_ID
         return get().addTask({
           title: cleanedTitle || raw.trim(),
           dueAt,
-          listId:
-            get().activeView.kind === 'list'
-              ? get().activeView.id
-              : get().activeView.kind === 'smart' && get().activeView.id === 'inbox'
-                ? INBOX_ID
-                : INBOX_ID,
+          listId,
           ...overrides,
         })
       },
@@ -228,7 +226,9 @@ export const useAppStore = create<AppState>()(
           order: get().tasks.length,
           pinned: partial.pinned ?? false,
         }
-        set({ tasks: [...get().tasks, task], selectedTaskId: task.id })
+        // Note: do NOT auto-select the new task — adding from quick-add should
+        // not hijack the screen with the detail panel/sheet.
+        set({ tasks: [...get().tasks, task] })
         return task
       },
 
@@ -239,9 +239,10 @@ export const useAppStore = create<AppState>()(
           ),
         }),
 
-      toggleComplete: (id) => {
+      /** Returns the id of the spawned next occurrence (repeating tasks), else null. */
+      toggleComplete: (id): string | null => {
         const task = get().tasks.find((t) => t.id === id)
-        if (!task) return
+        if (!task) return null
         if (task.status === 'todo') {
           const updates: Task[] = get().tasks.map((t) =>
             t.id === id
@@ -267,10 +268,12 @@ export const useAppStore = create<AppState>()(
               order: get().tasks.length + 1,
             }
             set({ tasks: [...updates, clone] })
-          } else {
-            set({ tasks: updates })
+            return clone.id
           }
-        } else if (task.status === 'done') {
+          set({ tasks: updates })
+          return null
+        }
+        if (task.status === 'done') {
           set({
             tasks: get().tasks.map((t) =>
               t.id === id
@@ -279,6 +282,7 @@ export const useAppStore = create<AppState>()(
             ),
           })
         }
+        return null
       },
 
       softDelete: (id) =>
@@ -294,8 +298,8 @@ export const useAppStore = create<AppState>()(
       restoreTask: (id) =>
         set({
           tasks: get().tasks.map((t) =>
-            t.id === id
-              ? { ...t, status: 'todo', completedAt: null, updatedAt: nowIso() }
+            t.id === id || (t.parentId === id && t.status === 'trashed')
+              ? { ...t, status: 'todo' as TaskStatus, completedAt: null, updatedAt: nowIso() }
               : t,
           ),
         }),
@@ -432,9 +436,12 @@ export const useAppStore = create<AppState>()(
         const p = (persisted ?? {}) as Partial<AppState> & { sessions?: unknown }
         const { sessions: _drop, ...rest } = p
         const merged = { ...current, ...rest } as AppState
-        // Migrate away from removed pomodoro module view
+        // Migrate away from removed pomodoro / habits module views
         const av = merged.activeView as ActiveView | { kind: 'module'; id: string }
         if (av?.kind === 'module' && (av as { id: string }).id === 'pomodoro') {
+          merged.activeView = { kind: 'smart', id: 'today' }
+        }
+        if (av?.kind === 'module' && (av as { id: string }).id === 'habits') {
           merged.activeView = { kind: 'smart', id: 'today' }
         }
         if ((merged.listViewMode as string) === 'pomodoro') {

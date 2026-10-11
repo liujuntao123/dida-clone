@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import {
-  CalendarDays,
-  Flag,
-  Inbox,
-  Mic,
-  MoreHorizontal,
-  Plus,
-  Tag,
-} from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { Drawer } from 'vaul'
 import { useAppStore } from '../../store/useAppStore'
 import { dayjs, parseNaturalDate } from '../../lib/dates'
@@ -199,39 +191,25 @@ export function MobileFab() {
                 ref={inputRef}
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                placeholder="准备做什么？"
-                className="accent-caret min-h-12 w-full bg-transparent text-[17px] text-white outline-none placeholder:text-[var(--color-muted)]"
+                placeholder="准备做什么？试试「明天 14:00 开会」"
+                className="accent-caret min-h-12 w-full bg-transparent text-[17px] text-[var(--color-fg)] outline-none placeholder:text-[var(--color-muted)]"
               />
               {preview?.dueAt && (
                 <div className="text-xs text-brand">
                   识别日期：{dayjs(preview.dueAt).format('M月D日 HH:mm')}
+                  {preview.cleanedTitle !== value.trim() && (
+                    <span className="text-[var(--color-muted)]"> · 标题「{preview.cleanedTitle}」</span>
+                  )}
                 </div>
               )}
-              <div className="mt-1 flex items-center gap-1 text-[var(--color-muted)]">
-                <button type="button" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-[var(--color-surface-2)]" aria-label="日期">
-                  <CalendarDays size={20} strokeWidth={1.75} />
-                </button>
-                <button type="button" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-[var(--color-surface-2)]" aria-label="优先级">
-                  <Flag size={20} strokeWidth={1.75} />
-                </button>
-                <button type="button" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-[var(--color-surface-2)]" aria-label="标签">
-                  <Tag size={20} strokeWidth={1.75} />
-                </button>
-                <button type="button" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-[var(--color-surface-2)]" aria-label="清单">
-                  <Inbox size={20} strokeWidth={1.75} />
-                </button>
-                <button type="button" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-[var(--color-surface-2)]" aria-label="更多">
-                  <MoreHorizontal size={20} strokeWidth={1.75} />
-                </button>
-                <div className="flex-1" />
+              <div className="mt-1 flex items-center justify-end">
                 <button
-                  type="button"
-                  disabled
-                  className="flex h-10 w-10 items-center justify-center rounded-lg opacity-40"
-                  aria-label="语音输入（暂未开放）"
-                  title="语音输入即将开放"
+                  type="submit"
+                  disabled={!value.trim()}
+                  className="flex h-10 items-center gap-1 rounded-xl bg-brand px-4 text-sm font-medium text-white disabled:opacity-40"
                 >
-                  <Mic size={20} strokeWidth={1.75} />
+                  <Plus size={16} strokeWidth={2.5} />
+                  添加
                 </button>
               </div>
             </form>

@@ -1,9 +1,7 @@
 import {
   Archive,
   Ban,
-  Bell,
   CalendarDays,
-  Clock,
   CheckCircle2,
   Inbox,
   LayoutGrid,
@@ -14,6 +12,7 @@ import {
   Settings,
   SquareKanban,
   Tag as TagIcon,
+  Trash2,
   User,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
@@ -49,6 +48,8 @@ function countForSmart(id: SmartListId, tasks: ReturnType<typeof useAppStore.get
       return base.filter((t) => t.status === 'done').length
     case 'abandoned':
       return base.filter((t) => t.status === 'abandoned').length
+    case 'trash':
+      return base.filter((t) => t.status === 'trashed').length
     default:
       return 0
   }
@@ -75,7 +76,7 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
   const isSmart = (id: SmartListId) => activeView.kind === 'smart' && activeView.id === id
   const isList = (id: string) => activeView.kind === 'list' && activeView.id === id
   const isTag = (id: string) => activeView.kind === 'tag' && activeView.id === id
-  const isModule = (id: 'calendar' | 'board' | 'quadrant' | 'habits' | 'settings') =>
+  const isModule = (id: 'calendar' | 'board' | 'quadrant' | 'settings') =>
     activeView.kind === 'module' && activeView.id === id
 
   const go = (view: Parameters<typeof setActiveView>[0]) => {
@@ -88,10 +89,11 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
       [
         { id: 'all' as const, label: '所有', Icon: Archive, count: countForSmart('all', tasks, inboxId) },
         { id: 'today' as const, label: '今天', Icon: CalendarDays, count: countForSmart('today', tasks, inboxId), badge: String(dayjs().date()) },
-        { id: 'next7' as const, label: '最近7天', Icon: CalendarDays, count: countForSmart('next7', tasks, inboxId), badge: dayjs().format('dd').slice(0, 2) },
+        { id: 'next7' as const, label: '最近7天', Icon: CalendarDays, count: countForSmart('next7', tasks, inboxId) },
         { id: 'inbox' as const, label: '收集箱', Icon: Inbox, count: countForSmart('inbox', tasks, inboxId) },
-        { id: 'completed' as const, label: '已完成', Icon: ListChecks, count: undefined as number | undefined },
-        { id: 'abandoned' as const, label: '已放弃', Icon: Ban, count: undefined as number | undefined },
+        { id: 'completed' as const, label: '已完成', Icon: ListChecks, count: countForSmart('completed', tasks, inboxId) },
+        { id: 'abandoned' as const, label: '已放弃', Icon: Ban, count: countForSmart('abandoned', tasks, inboxId) },
+        { id: 'trash' as const, label: '垃圾桶', Icon: Trash2, count: countForSmart('trash', tasks, inboxId) },
       ] as const,
     [tasks, inboxId],
   )
@@ -108,17 +110,10 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
         <div className="flex items-center gap-3 px-4 pb-3 pt-4">
           <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--color-border)]">
             <User size={22} className="text-brand" />
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#C9A227] text-[8px]">♛</span>
           </div>
           <div className="min-w-0 flex-1">
             <div className="truncate text-base font-semibold">用户</div>
           </div>
-          <button type="button" className="flex h-10 w-10 items-center justify-center text-[var(--color-muted)]" aria-label="搜索" onClick={() => { /* filter focus via manage */ setManageOpen(true) }}>
-            <Search size={20} />
-          </button>
-          <button type="button" className="flex h-10 w-10 items-center justify-center text-[var(--color-muted)]" aria-label="通知">
-            <Bell size={20} />
-          </button>
           <button
             type="button"
             className="flex h-10 w-10 items-center justify-center text-[var(--color-muted)]"
@@ -147,7 +142,7 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
                   <Icon size={20} strokeWidth={1.75} />
                   {badge && (
                     <span className="pointer-events-none absolute inset-0 flex items-center justify-center pt-1 text-[9px] font-bold text-brand">
-                      {id === 'today' ? badge : ''}
+                      {badge}
                     </span>
                   )}
                 </span>
@@ -179,6 +174,39 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
                 ))}
             </div>
           )}
+
+          {tags.length > 0 && (
+            <div className="mt-3 border-t border-[var(--color-border)] pt-2">
+              {tags.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  className={cn(
+                    'mb-0.5 flex w-full min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-[15px]',
+                    isTag(t.id) ? 'bg-brand/20' : 'hover:bg-[var(--color-surface-2)]',
+                  )}
+                  onClick={() => go({ kind: 'tag', id: t.id })}
+                >
+                  <TagIcon size={18} style={{ color: t.color }} />
+                  <span className="flex-1 text-left">{t.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-3 border-t border-[var(--color-border)] pt-2">
+            <button
+              type="button"
+              className={cn(
+                'mb-0.5 flex w-full min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-[15px]',
+                isModule('board') ? 'bg-brand/20' : 'hover:bg-[var(--color-surface-2)]',
+              )}
+              onClick={() => go({ kind: 'module', id: 'board' })}
+            >
+              <SquareKanban size={20} className="text-brand" strokeWidth={1.75} />
+              <span className="flex-1 text-left">看板</span>
+            </button>
+          </div>
         </nav>
 
         <div className="flex items-center justify-between border-t border-[var(--color-border)] px-4 py-3">
@@ -196,9 +224,9 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
             type="button"
             className="flex min-h-11 items-center gap-2 text-[15px] text-[var(--color-fg)]/90"
             onClick={() => setManageOpen((v) => !v)}
+            aria-expanded={manageOpen}
           >
             <MoreHorizontal size={18} />
-            <Settings size={16} />
             管理
           </button>
         </div>
@@ -226,12 +254,15 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
 
         {manageOpen && (
           <div className="border-t border-[var(--color-border)] px-3 py-2">
-            <input
-              value={filter.query}
-              onChange={(e) => setFilter({ query: e.target.value })}
-              placeholder="搜索任务…"
-              className="mb-2 w-full rounded-lg bg-[var(--color-card)] px-3 py-2 text-sm outline-none"
-            />
+            <div className="relative">
+              <Search size={14} className="absolute left-2.5 top-3 text-[var(--color-muted)]" />
+              <input
+                value={filter.query}
+                onChange={(e) => setFilter({ query: e.target.value })}
+                placeholder="搜索任务…"
+                className="mb-2 w-full rounded-lg bg-[var(--color-card)] py-2 pl-8 pr-3 text-sm outline-none"
+              />
+            </div>
             <div className="flex items-center justify-between">
               <span className="text-xs text-[var(--color-muted)]">主题</span>
               <ThemeToggle />
@@ -322,12 +353,14 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
             />
           </form>
         )}
-        {lists.map((l) => (
-          <button key={l.id} type="button" className={itemCls(isList(l.id))} onClick={() => go({ kind: 'list', id: l.id })}>
-            <span className="h-2.5 w-2.5 rounded-full" style={{ background: l.color }} />
-            {l.name}
-          </button>
-        ))}
+        {lists
+          .filter((l) => !l.isInbox)
+          .map((l) => (
+            <button key={l.id} type="button" className={itemCls(isList(l.id))} onClick={() => go({ kind: 'list', id: l.id })}>
+              <span className="h-2.5 w-2.5 rounded-full" style={{ background: l.color }} />
+              {l.name}
+            </button>
+          ))}
 
         <div className="mb-1 mt-4 flex items-center justify-between px-2">
           <span className="text-xs font-medium text-[var(--color-muted)]">标签</span>
@@ -372,16 +405,16 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
         <button type="button" className={itemCls(isModule('quadrant'))} onClick={() => go({ kind: 'module', id: 'quadrant' })}>
           <LayoutGrid size={16} /> 四象限
         </button>
-        <button type="button" className={itemCls(isModule('habits'))} onClick={() => go({ kind: 'module', id: 'habits' })}>
-          <Clock size={16} /> 习惯
-        </button>
 
         <div className="mb-1 mt-4 px-2 text-xs font-medium text-[var(--color-muted)]">其他</div>
         <button type="button" className={itemCls(isSmart('completed'))} onClick={() => go({ kind: 'smart', id: 'completed' })}>
-          <CheckCircle2 size={16} /> 已完成
+          <ListChecks size={16} /> 已完成
         </button>
         <button type="button" className={itemCls(isSmart('abandoned'))} onClick={() => go({ kind: 'smart', id: 'abandoned' })}>
           <Ban size={16} /> 已放弃
+        </button>
+        <button type="button" className={itemCls(isSmart('trash'))} onClick={() => go({ kind: 'smart', id: 'trash' })}>
+          <Trash2 size={16} /> 垃圾桶
         </button>
         <button type="button" className={itemCls(isModule('settings'))} onClick={() => go({ kind: 'module', id: 'settings' })}>
           <Settings size={16} /> 设置

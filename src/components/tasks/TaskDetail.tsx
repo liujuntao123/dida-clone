@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import {
+  ArrowLeft,
   Ban,
   Check,
   ChevronsUpDown,
-  GripVertical,
   ListTodo,
   MoreVertical,
   RotateCcw,
@@ -85,6 +85,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
   const [checkText, setCheckText] = useState('')
   const [addingCheck, setAddingCheck] = useState(false)
   const checkInputRef = useRef<HTMLInputElement>(null)
+  const titleRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     setListOpen(false)
@@ -97,6 +98,14 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
     setCheckText('')
   }, [selectedTaskId])
 
+  // Keep the auto-growing title textarea sized when switching tasks
+  useEffect(() => {
+    const el = titleRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [selectedTaskId, task?.title])
+
   useEffect(() => {
     if (addingCheck) checkInputRef.current?.focus()
   }, [addingCheck])
@@ -104,7 +113,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
   if (!task) {
     if (variant === 'sheet') return null
     return (
-      <div className="hidden h-full items-center justify-center text-sm text-[var(--color-muted)] lg:flex lg:w-[360px] lg:border-l lg:border-[var(--color-border)] lg:bg-[var(--color-card)]">
+      <div className="hidden h-full items-center justify-center text-sm text-[var(--color-muted)] md:flex md:w-[340px] lg:w-[360px] lg:border-l lg:border-[var(--color-border)] lg:bg-[var(--color-card)]">
         选择任务查看详情
       </div>
     )
@@ -143,6 +152,8 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
     setListOpen(false)
     setPriorityOpen(false)
     setMenuOpen(false)
+    setTagsOpen(false)
+    setDateOpen(false)
   }
 
   const submitCheck = () => {
@@ -157,11 +168,13 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
     setCheckText('')
   }
 
+  const parentTask = task.parentId ? tasks.find((t) => t.id === task.parentId) : undefined
+
   return (
     <div
       className={cn(
         'relative flex h-full w-full flex-col bg-[var(--color-card)]',
-        variant === 'panel' && 'border-l border-[var(--color-border)] lg:w-[380px]',
+        variant === 'panel' && 'border-l border-[var(--color-border)] md:w-[340px] lg:w-[380px]',
       )}
       onClick={() => closePopovers()}
     >
@@ -173,18 +186,35 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <button
-          type="button"
-          className="flex min-h-11 max-w-[55%] items-center gap-1 text-[15px] text-[var(--color-fg)]"
-          onClick={() => {
-            setPriorityOpen(false)
-            setMenuOpen(false)
-            setListOpen((v) => !v)
-          }}
-        >
-          <span className="truncate">{list?.name ?? '清单'}</span>
-          <ChevronsUpDown size={14} className="shrink-0 text-[var(--color-muted)]" />
-        </button>
+        {parentTask ? (
+          <button
+            type="button"
+            className="flex min-h-11 max-w-full items-center gap-1 text-[15px] text-[var(--color-fg)]"
+            onClick={() => {
+              setListOpen(false)
+              setPriorityOpen(false)
+              setMenuOpen(false)
+              setSelectedTaskId(parentTask.id)
+            }}
+            aria-label={`返回「${parentTask.title}」`}
+          >
+            <ArrowLeft size={16} className="shrink-0 text-[var(--color-muted)]" />
+            <span className="truncate text-[var(--color-muted)]">{parentTask.title}</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="flex min-h-11 max-w-[55%] items-center gap-1 text-[15px] text-[var(--color-fg)]"
+            onClick={() => {
+              setPriorityOpen(false)
+              setMenuOpen(false)
+              setListOpen((v) => !v)
+            }}
+          >
+            <span className="truncate">{list?.name ?? '清单'}</span>
+            <ChevronsUpDown size={14} className="shrink-0 text-[var(--color-muted)]" />
+          </button>
+        )}
 
         <div className="flex items-center">
           <button
@@ -417,6 +447,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
 
         {/* Title */}
         <textarea
+          ref={titleRef}
           value={task.title}
           onChange={(e) => updateTask(task.id, { title: e.target.value })}
           rows={1}
@@ -456,7 +487,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
           ) : (task.note ?? '').trim() ? (
             <button
               type="button"
-              className="prose prose-sm dark:prose-invert max-w-none w-full rounded-lg text-left text-[15px] text-[var(--color-fg)]/90"
+              className="md-note max-w-none w-full rounded-lg text-left text-[15px] text-[var(--color-fg)]/90"
               onClick={() => setEditingNote(true)}
             >
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{task.note!}</ReactMarkdown>
@@ -509,9 +540,6 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
                     c.done && 'text-[var(--color-muted)] line-through',
                   )}
                 />
-                <span className="mt-0.5 text-[var(--color-muted)]/50" aria-hidden>
-                  <GripVertical size={16} />
-                </span>
               </li>
             ))}
 
@@ -547,9 +575,6 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
                   >
                     {s.title}
                   </button>
-                  <span className="mt-0.5 text-[var(--color-muted)]/50" aria-hidden>
-                    <GripVertical size={16} />
-                  </span>
                 </li>
               ))}
 

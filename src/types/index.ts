@@ -75,7 +75,7 @@ export type ActiveView =
   | { kind: 'smart'; id: SmartListId }
   | { kind: 'list'; id: string }
   | { kind: 'tag'; id: string }
-  | { kind: 'module'; id: 'calendar' | 'board' | 'quadrant' | 'habits' | 'settings' }
+  | { kind: 'module'; id: 'calendar' | 'board' | 'quadrant' | 'settings' }
 
 export interface FilterState {
   priorities: Priority[]

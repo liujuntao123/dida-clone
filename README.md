@@ -115,15 +115,16 @@ curl -s -X PUT -H "Authorization: Bearer $KEY" -H "Content-Type: application/jso
 | 云同步 | Cloudflare Worker (Hono) + D1 |
 | 安卓壳 | Capacitor 8 + GitHub Actions (assembleRelease) |
 | 日期 | dayjs + chrono-node |
-| 日历 | react-day-picker |
 | 拖拽 | @dnd-kit |
+| 抽屉/底部弹层 | vaul |
+| 滑动操作 | react-swipeable-list |
 | Markdown | react-markdown + remark-gfm |
 
 ## 功能对照
 
 ### P0 / P1
 
-见此前清单：智能清单、任务详情、识日期、提醒、标签/子任务、日历月周、看板、四象限、番茄、搜索过滤、深浅色等。
+见此前清单：智能清单、任务详情（桌面侧栏 / 移动端底部抽屉，双档吸顶）、识日期、提醒、标签/检查项、日历月视图、看板、四象限、搜索过滤、深浅色、垃圾桶（侧栏可直达）、撤销 Toast 等。
 
 ### 明确不做（P2）
 
@@ -184,8 +185,8 @@ screenshots/   # 界面截图
 
 ## 已知限制
 
-- 提醒仅在页面打开时生效；需通知权限。
-- 子任务 2 级。
+- 提醒仅在页面打开时生效；通知权限请在「设置 → 通知」中主动授予（页面加载时不再自动请求，避免被浏览器静默拒绝）。
+- 检查项不支持拖拽排序。
 - 云同步为整包状态 + revision，非细粒度 CRDT；冲突需手动选云端或强制上传。
 - Access Key 存 localStorage，勿在公共电脑长期登录。
 - 安卓为自签 release；更新请始终用同一 keystore。未专门适配 Google Play 上架流程。

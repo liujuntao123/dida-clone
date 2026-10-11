@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Clock, LayoutGrid, ListTodo, MoreHorizontal } from 'lucide-react'
+import { LayoutGrid, ListTodo, MoreHorizontal } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { dayjs } from '../../lib/dates'
 import { cn } from '../../lib/cn'
@@ -25,7 +25,6 @@ function CalendarTabIcon({ active }: { active: boolean }) {
 
 const TABS = [
   { id: 'tasks' as const, label: '任务', icon: 'tasks' },
-  { id: 'habits' as const, label: '习惯', icon: 'habits' },
   { id: 'calendar' as const, label: '日历', icon: 'calendar' },
   { id: 'quadrant' as const, label: '四象限', icon: 'quadrant' },
   { id: 'more' as const, label: '更多', icon: 'more' },
@@ -53,7 +52,6 @@ export function MobileBottomNav() {
     if (activeView.kind === 'module') {
       if (activeView.id === 'calendar') return 'calendar'
       if (activeView.id === 'quadrant') return 'quadrant'
-      if (activeView.id === 'habits') return 'habits'
       if (activeView.id === 'settings' || activeView.id === 'board') return 'more'
     }
     if (isTaskView(activeView)) return 'tasks'
@@ -70,7 +68,6 @@ export function MobileBottomNav() {
       setActiveView(isTaskView(activeView) ? activeView : lastTaskView.current)
       return
     }
-    if (id === 'habits') setActiveView({ kind: 'module', id: 'habits' })
     if (id === 'calendar') setActiveView({ kind: 'module', id: 'calendar' })
     if (id === 'quadrant') setActiveView({ kind: 'module', id: 'quadrant' })
   }
@@ -97,7 +94,6 @@ export function MobileBottomNav() {
               )}
             >
               {id === 'tasks' && <ListTodo size={24} strokeWidth={on ? 2.25 : 1.75} />}
-              {id === 'habits' && <Clock size={24} strokeWidth={on ? 2.25 : 1.75} />}
               {id === 'calendar' && <CalendarTabIcon active={on} />}
               {id === 'quadrant' && <LayoutGrid size={24} strokeWidth={on ? 2.25 : 1.75} />}
               {id === 'more' && <MoreHorizontal size={24} strokeWidth={on ? 2.25 : 1.75} />}

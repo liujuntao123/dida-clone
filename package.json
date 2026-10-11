@@ -1,7 +1,7 @@
 {
   "name": "dida-clone",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.5.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -26,7 +26,6 @@
     "lucide-react": "^1.55.0",
     "prop-types": "^15.8.1",
     "react": "^19.2.8",
-    "react-day-picker": "^10.0.2",
     "react-dom": "^19.2.8",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.18.4",

@@ -3,7 +3,7 @@ import { Sidebar } from './Sidebar'
 import { MobileBottomNav } from './MobileBottomNav'
 import { MobileFab } from './MobileFab'
 import { useAppStore } from '../../store/useAppStore'
-import { checkDueReminders, ensureNotificationPermission } from '../../lib/reminders'
+import { checkDueReminders } from '../../lib/reminders'
 import { cn } from '../../lib/cn'
 import { applyTheme } from '../../lib/theme'
 import { ToastHost } from '../common/Toast'
@@ -22,7 +22,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   }, [theme])
 
   useEffect(() => {
-    void ensureNotificationPermission()
+    // Note: Notification.requestPermission() is NOT called automatically here —
+    // browsers auto-deny permission prompts without a user gesture, which would
+    // permanently block reminders. Request it from 设置 → 通知 instead.
     const tick = () => {
       const fired = checkDueReminders(tasks, notified)
       fired.forEach((id) => markReminderNotified(id))

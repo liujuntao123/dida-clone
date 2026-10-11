@@ -41,11 +41,9 @@ export function TaskItem({ task, compact = false }: { task: Task; compact?: bool
   const setSelectedTaskId = useAppStore((s) => s.setSelectedTaskId)
   const toggleComplete = useAppStore((s) => s.toggleComplete)
   const softDelete = useAppStore((s) => s.softDelete)
-  const restoreTask = useAppStore((s) => s.restoreTask)
   const togglePin = useAppStore((s) => s.togglePin)
   const setTaskDue = useAppStore((s) => s.setTaskDue)
   const moveTaskToList = useAppStore((s) => s.moveTaskToList)
-  const updateTask = useAppStore((s) => s.updateTask)
   const lists = useAppStore((s) => s.lists)
   const tags = useAppStore((s) => s.tags)
   const showToast = useToastStore((s) => s.show)
@@ -57,23 +55,36 @@ export function TaskItem({ task, compact = false }: { task: Task; compact?: bool
   const selected = selectedTaskId === task.id
   const pinned = !!task.pinned
 
+  /**
+   * Revert to a `before` snapshot of the tasks array, while keeping tasks
+   * created after it (e.g. a quick-add during the 5s undo window) — except
+   * `dropId`, used to remove the spawned next occurrence of a repeating task.
+   */
+  const revertTasksTo = (before: Task[], dropId?: string | null) => {
+    const snapIds = new Set(before.map((t) => t.id))
+    const kept = useAppStore
+      .getState()
+      .tasks.filter((t) => !snapIds.has(t.id) && t.id !== dropId)
+    useAppStore.setState({ tasks: [...before, ...kept] })
+  }
+
   const completeWithUndo = () => {
     if (task.status === 'todo') {
-      const snapshot = { status: task.status, completedAt: task.completedAt }
-      toggleComplete(task.id)
-      showToast('已完成', {
-        undo: () => updateTask(task.id, snapshot),
-      })
+      // Snapshot covers the task itself AND the next occurrence spawned for
+      // repeating tasks — a field-level undo would leave the clone behind.
+      const before = useAppStore.getState().tasks
+      const spawnId = toggleComplete(task.id)
+      showToast('已完成', { undo: () => revertTasksTo(before, spawnId) })
     } else {
       toggleComplete(task.id)
     }
   }
 
   const deleteWithUndo = () => {
+    // Snapshot covers the task AND its trashed subtasks.
+    const before = useAppStore.getState().tasks
     softDelete(task.id)
-    showToast('已移到垃圾桶', {
-      undo: () => restoreTask(task.id),
-    })
+    showToast('已移到垃圾桶', { undo: () => revertTasksTo(before) })
   }
 
   const setDueWithToast = (label: string, dueAt: string) => {
@@ -246,7 +257,6 @@ export function TaskItem({ task, compact = false }: { task: Task; compact?: bool
       </div>
     </div>
   ) : null
-
   if (!isMobile) {
     return (
       <>

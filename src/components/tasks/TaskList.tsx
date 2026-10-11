@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
-import { ChevronDown, ChevronRight, Menu, MoreVertical } from 'lucide-react'
+import { ChevronDown, ChevronRight, Menu } from 'lucide-react'
 import { SwipeableList, Type as SwipeType } from 'react-swipeable-list'
 import 'react-swipeable-list/dist/styles.css'
 import { useAppStore } from '../../store/useAppStore'
+import { useToastStore } from '../../store/useToastStore'
 import { TaskItem } from './TaskItem'
 import { QuickAdd } from './QuickAdd'
 import { FilterBar } from './FilterBar'
@@ -108,6 +109,7 @@ export function TaskListPanel() {
   const lists = useAppStore((s) => s.lists)
   const tags = useAppStore((s) => s.tags)
   const emptyTrash = useAppStore((s) => s.emptyTrash)
+  const showToast = useToastStore((s) => s.show)
   const selectedTaskId = useAppStore((s) => s.selectedTaskId)
   const setSidebarOpen = useAppStore((s) => s.setSidebarOpen)
   const setActiveView = useAppStore((s) => s.setActiveView)
@@ -147,8 +149,8 @@ export function TaskListPanel() {
     return [{ key: 'all', title, tasks }]
   }, [tasks, useDateGroups, activeView, lists, title])
 
-  const doneAbandonedCount = useMemo(
-    () => allTasks.filter((t) => !t.parentId && (t.status === 'done' || t.status === 'abandoned')).length,
+  const doneCount = useMemo(
+    () => allTasks.filter((t) => !t.parentId && t.status === 'done').length,
     [allTasks],
   )
 
@@ -156,7 +158,8 @@ export function TaskListPanel() {
     tasks.length === 0 ? (
       <div className="flex flex-col items-center justify-center gap-2 px-6 py-16 text-center">
         <p className="text-base text-[var(--color-fg)]/80">暂无任务</p>
-        <p className="text-sm text-[var(--color-muted)]">点右下角 + 添加一件事</p>
+        <p className="text-sm text-[var(--color-muted)] md:hidden">点右下角 + 添加一件事</p>
+        <p className="hidden text-sm text-[var(--color-muted)] md:block">在上方输入框添加一件事</p>
       </div>
     ) : (
       <div className="flex flex-col gap-3 px-3 py-3">
@@ -165,15 +168,15 @@ export function TaskListPanel() {
         ))}
         {activeView.kind === 'smart' &&
           ['all', 'today', 'next7', 'inbox'].includes(activeView.id) &&
-          doneAbandonedCount > 0 && (
+          doneCount > 0 && (
             <button
               type="button"
               className="flex min-h-11 items-center justify-between rounded-2xl bg-[var(--color-card)] px-4 py-3 text-sm text-[var(--color-muted)]"
               onClick={() => setActiveView({ kind: 'smart', id: 'completed' })}
             >
-              <span>已完成 & 已放弃</span>
+              <span>已完成</span>
               <span className="flex items-center gap-1">
-                {doneAbandonedCount}
+                {doneCount}
                 <ChevronRight size={16} />
               </span>
             </button>
@@ -200,9 +203,7 @@ export function TaskListPanel() {
           )}
           <h1 className="flex-1 truncate text-center text-lg font-semibold md:text-left md:pl-2">{title}</h1>
           {isMobile ? (
-            <button type="button" className="flex min-h-11 min-w-11 items-center justify-center text-[var(--color-muted)]" aria-label="更多">
-              <MoreVertical size={20} />
-            </button>
+            <span className="min-w-11 pr-1 text-right text-xs text-[var(--color-muted)]">{tasks.length} 项</span>
           ) : (
             <span className="pr-3 text-xs text-[var(--color-muted)]">{tasks.length} 项</span>
           )}
@@ -211,7 +212,16 @@ export function TaskListPanel() {
         {showQuickAdd && !isMobile && <FilterBar />}
         {activeView.kind === 'smart' && activeView.id === 'trash' && (
           <div className="border-b border-[var(--color-border)] px-3 py-2">
-            <button type="button" className="min-h-11 text-sm text-red-500 active:opacity-80" onClick={() => emptyTrash()}>
+            <button
+              type="button"
+              className="min-h-11 text-sm text-red-500 active:opacity-80"
+              onClick={() => {
+                if (!tasks.length) return
+                if (!window.confirm(`永久删除 ${tasks.length} 件任务？此操作不可撤销。`)) return
+                emptyTrash()
+                showToast('垃圾桶已清空')
+              }}
+            >
               清空垃圾桶
             </button>
           </div>
@@ -225,7 +235,7 @@ export function TaskListPanel() {
             <TaskDetail variant="panel" />
           </div>
         ) : (
-          <div className="hidden lg:flex">
+          <div className="hidden md:flex">
             <TaskDetail variant="panel" />
           </div>
         )

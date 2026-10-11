@@ -10,7 +10,7 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core'
 import { useState } from 'react'
-import { MoreVertical, Square, CheckSquare, List } from 'lucide-react'
+import { Square, CheckSquare, List } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import type { Priority, Task } from '../../types'
 import { cn } from '../../lib/cn'
@@ -192,9 +192,7 @@ export function QuadrantView() {
         style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 0px))' }}
       >
         <h1 className="text-xl font-semibold">四象限</h1>
-        <button type="button" className="flex h-10 w-10 items-center justify-center text-[var(--color-muted)]" aria-label="更多">
-          <MoreVertical size={20} />
-        </button>
+        <span className="text-xs text-[var(--color-muted)]">拖动卡片可修改优先级</span>
       </div>
       <div className="flex-1 overflow-auto px-2 pb-4">
         <DndContext

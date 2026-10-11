@@ -15,15 +15,16 @@
 
 ```bash
 # 1. 改 package.json + android/app/build.gradle
-# 2. 验证（见下节）后提交，例如：chore(android): bump version to 0.7.0 可并入 feat 提交
+# 2. 验证（见下节）后提交，例如：feat(...) 可与版本提交合并为一条
 git push origin main
-git tag -a v0.7.0 -m "..." && git push origin v0.7.0
-# 3.（可选）出 release APK —— workflow 只支持手动触发，推 tag 不会自动构建
-gh workflow run android.yml -f create_release=true -f release_tag=v0.7.0
+git tag -a v0.10.0 -m "..." && git push origin v0.10.0
+# 3. 完成 —— 推送 v* tag 会自动触发 android.yml：构建签名 APK/AAB 并创建 GitHub Release
 ```
 
 - Tag 一律用附注标签（`git tag -a`），命名 `vX.Y.Z`。
-- Tag 推送后若发现遗漏（如版本号），可直接重打并 `git push -f origin vX.Y.Z`——前提是该 tag 还没有对应的 Release/APK。
+- **推 tag 即出包**：`android.yml` 监听 `v*` tag push，构建完成后自动创建 GitHub Release 并挂上 APK/AAB，无需任何手动触发（`gh workflow run android.yml` 仅在需要补构建时使用）。
+- **Release 说明自动生成**：workflow 的「Generate release notes」步骤取「上一个 tag..当前 tag」的提交列表（剥掉尾部 `, vX.Y.Z` 后缀）作为「更新内容」，后接固定的安装 / 产物说明。因此**提交描述就是发布日志**——请写成用户能看懂的中文变更说明，别写「fix: 修复 bug」这类无信息量描述。
+- Tag 推送后若发现遗漏（如版本号），可直接重打并 `git push -f origin vX.Y.Z`——前提是该 tag 还没有对应的 Release/APK（重打 tag 会重新触发构建；已生成的 Release 需手动删掉再重跑）。
 
 ## 验证流程（改完必跑）
 

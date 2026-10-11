@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Circle,
   CheckCircle2,
@@ -38,6 +38,22 @@ function dueAtDay(offsetDays: number, preserveTime?: string | null) {
     .toISOString()
 }
 
+/**
+ * 左右滑操作（react-swipeable-list，IOS 模式 = 呼出按钮、点按触发）。
+ *
+ * 关键规则：拖动超过「操作按钮总宽」才保持展开，所以按钮必须固定宽度、
+ * 数量克制；maxSwipe 按行宽动态钳制在「总宽 + 8px」，杜绝按钮全开后
+ * 还能继续拖出一截空白过冲（lib 默认 0.7 × 行宽，手感发散）。
+ */
+const TRAIL_ACTION_W = 56
+const LEAD_ACTION_W = 64
+const TRAILING_W = TRAIL_ACTION_W * 3 // 明天 / 移动 / 删除
+const LEADING_W = LEAD_ACTION_W * 2 // 完成 / 置顶
+/** 行宽 ≈ 视口宽 - TaskList / SearchPage 的 px-3 外边距 - 卡片 px-1 内边距 */
+const rowWidthOf = (vw: number) => Math.max(120, vw - 32)
+
+type OpenSide = 'leading' | 'trailing' | null
+
 export function TaskItem({
   task,
   compact = false,
@@ -67,6 +83,74 @@ export function TaskItem({
     setMoveOpen(false)
     return true
   })
+
+  // —— 左右滑展开态：跟踪 + 收起 ——
+  const [vw, setVw] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 390))
+  useEffect(() => {
+    const sync = () => setVw(window.innerWidth)
+    window.addEventListener('resize', sync)
+    return () => window.removeEventListener('resize', sync)
+  }, [])
+  const rowW = rowWidthOf(vw)
+  const maxSwipe = Math.min(0.95, (TRAILING_W + 8) / rowW)
+  const trailingOpenPct = Math.ceil(((TRAILING_W + 2) / rowW) * 100)
+  const leadingOpenPct = Math.ceil(((LEADING_W + 2) / rowW) * 100)
+
+  const itemRef = useRef<SwipeableListItem | null>(null)
+  const rowRef = useRef<HTMLDivElement | null>(null)
+  const [openSide, setOpenSide] = useState<OpenSide>(null)
+  const openSideRef = useRef<OpenSide>(null)
+
+  /** 收起已展开的操作按钮（复用 lib 自身的回弹动画，保持在 0 位置）。 */
+  const closeActions = useCallback(() => {
+    const inst = itemRef.current as { playReturnAnimation?: (opts?: { to?: number }) => void } | null
+    try {
+      inst?.playReturnAnimation?.({ to: 0 })
+    } catch {
+      /* ignore */
+    }
+    openSideRef.current = null
+    setOpenSide(null)
+  }, [])
+
+  // 展开时：点击行外任意空白处（其他行 / 页面空白）收起
+  useEffect(() => {
+    if (!openSide) return
+    const onPointerDown = (e: PointerEvent) => {
+      if (rowRef.current?.contains(e.target as Node)) return
+      closeActions()
+    }
+    document.addEventListener('pointerdown', onPointerDown, true)
+    return () => document.removeEventListener('pointerdown', onPointerDown, true)
+  }, [openSide, closeActions])
+
+  /** 拖动过程中同步展开侧（lib 规则：拖过按钮总宽 = 保持展开）。 */
+  const onSwipeProgress = useCallback(
+    (pct: number, dir: string) => {
+      const d = dir.toLowerCase()
+      const side: OpenSide =
+        d === 'left'
+          ? pct >= trailingOpenPct
+            ? 'trailing'
+            : null
+          : d === 'right'
+            ? pct >= leadingOpenPct
+              ? 'leading'
+              : null
+            : null
+      if (side !== openSideRef.current) {
+        openSideRef.current = side
+        setOpenSide(side)
+      }
+    },
+    [trailingOpenPct, leadingOpenPct],
+  )
+
+  /** 点按操作按钮：先执行动作再收起（删除走 lib 的 destructive 收场动画，不手动收）。 */
+  const withClose = (fn: () => void) => () => {
+    fn()
+    closeActions()
+  }
 
   const list = lists.find((l) => l.id === task.listId)
   const taskTags = tags.filter((t) => task.tags.includes(t.id))
@@ -126,18 +210,17 @@ export function TaskItem({
     })
   }
 
-  // 呼出宽度 = 按钮总宽：react-swipeable-list 要求拖动超过 actions 总宽才能保持展开。
-  // 控制在 ~170px（约 43% 屏宽），避免「要滑大半屏才呼出」。
+  // 呼出宽度 = 按钮总宽（固定宽）：react-swipeable-list 要求拖动超过 actions 总宽才保持展开。
   const leadingActions = (
     <LeadingActions>
-      <SwipeAction onClick={completeWithUndo}>
-        <div className="flex h-full min-w-[64px] flex-col items-center justify-center gap-0.5 bg-emerald-500 px-2 text-xs text-white">
+      <SwipeAction onClick={withClose(completeWithUndo)}>
+        <div className="flex h-full w-16 flex-col items-center justify-center gap-1 bg-emerald-500 text-[11px] leading-none text-white">
           <CheckCircle2 size={18} />
           完成
         </div>
       </SwipeAction>
-      <SwipeAction onClick={() => togglePin(task.id)}>
-        <div className="flex h-full min-w-[64px] flex-col items-center justify-center gap-0.5 bg-amber-500 px-2 text-xs text-white">
+      <SwipeAction onClick={withClose(() => togglePin(task.id))}>
+        <div className="flex h-full w-16 flex-col items-center justify-center gap-1 bg-amber-500 text-[11px] leading-none text-white">
           <Pin size={18} />
           {pinned ? '取消置顶' : '置顶'}
         </div>
@@ -147,21 +230,21 @@ export function TaskItem({
 
   const trailingActions = (
     <TrailingActions>
-      <SwipeAction onClick={() => setDueWithToast('明天', dueAtDay(1, task.dueAt))}>
-        <div className="flex h-full min-w-[56px] flex-col items-center justify-center gap-0.5 bg-brand px-1 text-xs text-white">
-          <CalendarDays size={16} />
+      <SwipeAction onClick={withClose(() => setDueWithToast('明天', dueAtDay(1, task.dueAt)))}>
+        <div className="flex h-full w-14 flex-col items-center justify-center gap-1 bg-brand text-[11px] leading-none text-white">
+          <CalendarDays size={18} />
           明天
         </div>
       </SwipeAction>
-      <SwipeAction onClick={() => setMoveOpen(true)}>
-        <div className="flex h-full min-w-[56px] flex-col items-center justify-center gap-0.5 bg-violet-500 px-1 text-xs text-white">
-          <FolderInput size={16} />
+      <SwipeAction onClick={withClose(() => setMoveOpen(true))}>
+        <div className="flex h-full w-14 flex-col items-center justify-center gap-1 bg-violet-500 text-[11px] leading-none text-white">
+          <FolderInput size={18} />
           移动
         </div>
       </SwipeAction>
       <SwipeAction destructive onClick={deleteWithUndo}>
-        <div className="flex h-full min-w-[56px] flex-col items-center justify-center gap-0.5 bg-red-500 px-1 text-xs text-white">
-          <Trash2 size={16} />
+        <div className="flex h-full w-14 flex-col items-center justify-center gap-1 bg-red-500 text-[11px] leading-none text-white">
+          <Trash2 size={18} />
           删除
         </div>
       </SwipeAction>
@@ -170,6 +253,7 @@ export function TaskItem({
 
   const row = (
     <div
+      ref={rowRef}
       className={cn(
         // w-full：react-swipeable-list 的 content 容器是 flex，不撑满会在行右侧留「点不中」的死区
         'group relative flex min-h-11 w-full cursor-pointer items-start gap-2 px-3 py-2.5 transition',
@@ -179,8 +263,26 @@ export function TaskItem({
         selected && 'bg-brand/10',
         pinned && !compact && 'border-l-2 border-l-amber-400',
       )}
-      onClick={() => setSelectedTaskId(task.id)}
+      onClick={() => {
+        // 已展开时点行内空白 = 收起，而不是打开详情
+        if (openSide) {
+          closeActions()
+          return
+        }
+        setSelectedTaskId(task.id)
+      }}
     >
+      {/* 展开态遮罩：挡住行内控件，点按即收起（按钮在遮罩外，仍可点按触发） */}
+      {openSide && (
+        <div
+          className="absolute inset-0 z-10"
+          aria-hidden
+          onClick={(e) => {
+            e.stopPropagation()
+            closeActions()
+          }}
+        />
+      )}
       <button
         type="button"
         className="mt-0.5 flex min-h-10 min-w-10 shrink-0 items-center justify-center text-[var(--color-muted)] hover:text-brand disabled:opacity-40"
@@ -381,14 +483,17 @@ export function TaskItem({
   return (
     <>
       <SwipeableListItem
-        maxSwipe={0.7}
+        ref={itemRef}
+        maxSwipe={maxSwipe}
+        // 14px 起手阈值：先确认横向意图再接管手势，避免轻微斜向滚动被误判成滑动
+        swipeStartThreshold={14}
         threshold={0.35}
-        // fullSwipe 关闭：左/右滑只展开操作按钮，需点按才触发，
-        // 不会再出现「一滑就删除」的误触。
+        // fullSwipe 关闭：左/右滑只展开操作按钮，需点按才触发（避免误删）
         listType={SwipeType.IOS}
         leadingActions={leadingActions}
         trailingActions={trailingActions}
         blockSwipe={task.status === 'trashed'}
+        onSwipeProgress={onSwipeProgress}
       >
         {row}
       </SwipeableListItem>

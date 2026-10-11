@@ -155,6 +155,16 @@ async function mobileSuite(browser) {
   ok(afterSwipeTasks.length === beforeCount && afterSwipeTasks.filter((t) => t.status === 'trashed').length === beforeTasks.filter((t) => t.status === 'trashed').length, '滑动本身未删除任务')
   await shot(page, 'm04-swipe-actions')
 
+  // 4.5 点空白收起呼出按钮 → 再次左滑可重新呼出
+  await page.touchscreen.tap(h1Point.x, h1Point.y)
+  await sleep(500)
+  const closedState = await readSwipe()
+  ok(closedState.offsetX > -10, `点击空白处收起呼出按钮 (offsetX=${Math.round(closedState.offsetX)}px)`)
+  await swipe(page, rowBox.x + rowBox.width - 12, rowBox.y + rowBox.height / 2, rowBox.x + 60, rowBox.y + rowBox.height / 2, 20)
+  await sleep(500)
+  swipeState = await readSwipe()
+  ok(swipeState.offsetX < -60, `重新左滑可再次呼出 (offsetX=${Math.round(swipeState.offsetX)}px)`)
+
   // 5. 点按「删除」→ 进垃圾桶 + Toast 可撤销
   await page.evaluate(() => {
     const item = document.querySelector('.swipeable-list-item')

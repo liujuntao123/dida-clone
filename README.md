@@ -133,6 +133,7 @@ curl -s -X PUT -H "Authorization: Bearer $KEY" -H "Content-Type: application/jso
 - **全站字号协调**：正文统一 14px、次要文字 12px、模块页页头 16px、大标题（日历 / 四象限 / 详情）20px，层级更细腻、信息密度更舒适。
 - e2e 扩充到 **53 项断言**（新增新建抽屉工具条 / 属性胶囊 / 优先级随任务落库回归）。
 - **v0.11.1 修复**：设置页「管理」区整体移除；新建抽屉高度自适应修复——工具面板打开时自动收起键盘、面板互斥（描述 ↔ 工具面板），并关闭 vaul 键盘重排（它会用内联像素冻结抽屉高度，导致开面板后高度卡死 / 裁切），键盘避让改由 visualViewport 自管（Android 压缩式键盘零开销）。
+- **v0.11.2 优化**：任务行左右滑操作重做——按钮内容垂直居中、固定宽度不再随拖动拉伸（覆写 lib 的 flex 拉伸与顶/底对齐）；拖动止点钳制在按钮总宽，杜绝按钮全开后继续拖出一截空白；回弹动画 0.5s→0.26s 更跟手；**点击行内空白或行外任意空白即收起呼出按钮**，执行动作（完成/置顶/明天/移动）后自动收起；起手阈值提高到 14px，先确认横向意图再接管手势。e2e 扩充到 **55 项断言**。
 
 ### v0.10 优化
 
@@ -217,7 +218,7 @@ git tag -a v0.1.0 -m "v0.1.0" && git push origin v0.1.0
 src/           # 前端
 android/       # Capacitor Android 工程（提交到 Git，供 CI）
 worker/        # Cloudflare Worker + D1 schema
-scripts/       # e2e-check.mjs：puppeteer 自动化验证（53 项断言）
+scripts/       # e2e-check.mjs：puppeteer 自动化验证（55 项断言）
 .github/workflows/android.yml  # 打 release APK / Release（手动触发）
 screenshots/   # 界面截图
 AGENTS.md      # AI agent / 维护者协作规范（发版清单、已知陷阱）

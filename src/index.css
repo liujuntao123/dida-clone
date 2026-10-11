@@ -132,6 +132,27 @@ textarea:focus {
   width: 100%;
 }
 
+/* ---------- 任务行左右滑操作（react-swipeable-list）样式覆写 ---------- */
+/* 操作按钮固定宽度：揭示过程中不随容器宽度拉伸/压缩（lib 默认 flex:1 + width:100%） */
+.swipeable-list-item__leading-actions > .swipe-action,
+.swipeable-list-item__trailing-actions > .swipe-action {
+  width: auto;
+  flex: 0 0 auto;
+}
+/* lib 把按钮内容推到底部/顶部（trailing: flex-end / leading: flex-start），统一居中 */
+.swipeable-list-item__leading-actions .swipe-action > *,
+.swipeable-list-item__trailing-actions .swipe-action > * {
+  justify-content: center;
+}
+/* 回弹更跟手：lib 默认 0.5s ease-in-out 太黏 */
+.swipeable-list-item__content--return {
+  transition: transform 0.26s cubic-bezier(0.25, 0.8, 0.35, 1) !important;
+}
+.swipeable-list-item__leading-actions--return,
+.swipeable-list-item__trailing-actions--return {
+  transition: width 0.26s cubic-bezier(0.25, 0.8, 0.35, 1) !important;
+}
+
 /* Drawer sheet height — dvh with vh fallback for older WebViews */
 .sheet-92 {
   height: 92vh;
@@ -334,5 +355,10 @@ textarea:focus {
   .animate-month-next,
   .animate-month-prev {
     animation: none;
+  }
+  .swipeable-list-item__content--return,
+  .swipeable-list-item__leading-actions--return,
+  .swipeable-list-item__trailing-actions--return {
+    transition: none;
   }
 }

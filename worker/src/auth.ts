@@ -2,6 +2,7 @@ import { betterAuth } from 'better-auth'
 import { APIError, createAuthMiddleware } from 'better-auth/api'
 import { admin, bearer } from 'better-auth/plugins'
 import { requestMeta, writeAudit, type Env } from './env'
+import { hashPassword, verifyPassword } from './password'
 
 /**
  * 允许的前端来源：
@@ -50,6 +51,8 @@ function buildAuth(env: Env) {
       maxPasswordLength: 128,
       requireEmailVerification: false,
       autoSignIn: true,
+      // Workers 免费版 10ms CPU 限额装不下默认 scrypt，改用 WebCrypto PBKDF2
+      password: { hash: hashPassword, verify: verifyPassword },
     },
     session: {
       expiresIn: 60 * 60 * 24 * 30, // 30 天

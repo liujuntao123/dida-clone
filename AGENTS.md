@@ -64,8 +64,12 @@ E2E 的 headless 特殊性（改脚本/环境时注意）：
   （会话生命周期）、`src/lib/account.ts`（每账号游标/设备/墓碑元数据）。
 - **同步设置项**：theme / sortBy / calendarMode 走 `settings` 实体（id=app）；
   notifiedReminders 与视图状态是设备本地的，不同步。
+- **口令哈希**：`worker/src/password.ts` 用 WebCrypto PBKDF2(100k)，**别改回默认 scrypt**——
+  CF Workers 免费版 10ms CPU 限额下 scrypt 会把注册/校验请求直接杀死（实测挂起）。
 - **已知环境坑**：某些受限沙箱内，wrangler dev 的首个注册请求若来自 Node fetch 会永久挂起
   （curl 先行可解）；被反复杀/起的端口可能被代理层劫持——`run-e2e` 因此随机化端口 + curl 预热。
+- **自举建表**：worker 首个 /api/* 请求会幂等执行 CREATE TABLE IF NOT EXISTS
+  （`src/bootstrap.ts`），部署机无 D1 权限也能完成初始化；schema.sql 与其保持同步。
 
 ## 代码约定 / 已知陷阱
 

@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { getAuth } from './auth'
+import { ensureSchema } from './bootstrap'
 import { adminApp } from './admin'
 import { syncApp } from './sync'
 import type { SyncHono } from './env'
@@ -38,10 +39,12 @@ app.use(
 
 // 每个 isolate 缓存一个 better-auth 实例，注入 Hono 变量供子路由使用
 app.use('/api/*', async (c, next) => {
+  await ensureSchema(c.env.DB)
   c.set('auth', getAuth(c.env))
   await next()
 })
 app.use('/admin/api/*', async (c, next) => {
+  await ensureSchema(c.env.DB)
   c.set('auth', getAuth(c.env))
   await next()
 })

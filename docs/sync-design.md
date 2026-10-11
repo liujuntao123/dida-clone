@@ -109,6 +109,9 @@ LWW 按 id 折叠，不会翻倍。
   响应头下发，存 localStorage，所有 API 以 `Authorization: Bearer` 携带——天然适配
   Web / Capacitor 安卓壳 / curl，避免跨源 Cookie 的复杂度；
 - 会话 30 天滑动续期；密码修改可使其他设备全部失效；设置页可查看/远程注销设备；
+- **口令哈希用 PBKDF2-SHA256 100k（WebCrypto）**而非默认 scrypt：Cloudflare Workers
+  免费版 10ms CPU/请求限额扛不住 scrypt（实测注册/校验请求被杀），PBKDF2 原生执行可稳定通过；
+  存储格式 `pbkdf2$iterations$salt_b64url$hash_b64url`；
 - 封禁用户即时失效其全部会话；注销账号在服务端清空实体/日志/会话/用户（审计留痕抹去 user_id）；
 - 登出（本地）：撤销服务端会话 + 本地数据回种子态 + 停同步引擎。
 

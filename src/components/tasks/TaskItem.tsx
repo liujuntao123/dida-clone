@@ -7,6 +7,7 @@ import {
   CalendarDays,
   FolderInput,
   ListChecks,
+  RotateCcw,
   Square,
   CheckSquare,
 } from 'lucide-react'
@@ -50,9 +51,12 @@ export function TaskItem({
   const setSelectedTaskId = useAppStore((s) => s.setSelectedTaskId)
   const toggleComplete = useAppStore((s) => s.toggleComplete)
   const softDelete = useAppStore((s) => s.softDelete)
+  const restoreTask = useAppStore((s) => s.restoreTask)
+  const permanentlyDelete = useAppStore((s) => s.permanentlyDelete)
   const togglePin = useAppStore((s) => s.togglePin)
   const setTaskDue = useAppStore((s) => s.setTaskDue)
   const moveTaskToList = useAppStore((s) => s.moveTaskToList)
+  const setActiveView = useAppStore((s) => s.setActiveView)
   const lists = useAppStore((s) => s.lists)
   const tags = useAppStore((s) => s.tags)
   const showToast = useToastStore((s) => s.show)
@@ -94,6 +98,18 @@ export function TaskItem({
     const before = useAppStore.getState().tasks
     softDelete(task.id)
     showToast('已移到垃圾桶', { undo: () => revertTasksTo(before) })
+  }
+
+  const restoreWithToast = () => {
+    restoreTask(task.id)
+    showToast('已恢复')
+  }
+
+  const permanentDeleteWithConfirm = () => {
+    if (task.status !== 'trashed') return
+    if (!window.confirm(`永久删除「${task.title || '无标题'}」？此操作不可撤销。`)) return
+    permanentlyDelete(task.id)
+    showToast('已永久删除')
   }
 
   const setDueWithToast = (label: string, dueAt: string) => {
@@ -153,7 +169,8 @@ export function TaskItem({
   const row = (
     <div
       className={cn(
-        'group relative flex min-h-11 cursor-pointer items-start gap-2 px-3 py-2.5 transition',
+        // w-full：react-swipeable-list 的 content 容器是 flex，不撑满会在行右侧留「点不中」的死区
+        'group relative flex min-h-11 w-full cursor-pointer items-start gap-2 px-3 py-2.5 transition',
         compact
           ? 'rounded-xl hover:bg-[var(--color-surface-2)]'
           : 'border-b border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-2)]',
@@ -164,7 +181,8 @@ export function TaskItem({
     >
       <button
         type="button"
-        className="mt-0.5 flex min-h-10 min-w-10 shrink-0 items-center justify-center text-[var(--color-muted)] hover:text-brand"
+        className="mt-0.5 flex min-h-10 min-w-10 shrink-0 items-center justify-center text-[var(--color-muted)] hover:text-brand disabled:opacity-40"
+        disabled={task.status === 'trashed' || task.status === 'abandoned'}
         onClick={(e) => {
           e.stopPropagation()
           completeWithUndo()
@@ -186,15 +204,33 @@ export function TaskItem({
           <PriorityFlag priority={task.priority} size={12} />
           {task.dueAt && <span>{formatDue(task.dueAt)}</span>}
           {list && (
-            <span className="inline-flex items-center gap-1">
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 hover:text-[var(--color-fg)]"
+              title={`查看清单「${list.name}」`}
+              onClick={(e) => {
+                e.stopPropagation()
+                setActiveView({ kind: 'list', id: list.id })
+              }}
+            >
               <span className="h-1.5 w-1.5 rounded-full" style={{ background: list.color }} />
               {list.name}
-            </span>
+            </button>
           )}
           {taskTags.map((t) => (
-            <span key={t.id} className="rounded px-1" style={{ background: `${t.color}22`, color: t.color }}>
+            <button
+              key={t.id}
+              type="button"
+              className="rounded px-1 hover:opacity-80"
+              style={{ background: `${t.color}22`, color: t.color }}
+              title={`查看标签「${t.name}」`}
+              onClick={(e) => {
+                e.stopPropagation()
+                setActiveView({ kind: 'tag', id: t.id })
+              }}
+            >
               #{t.name}
-            </span>
+            </button>
           ))}
           {task.checklist.length > 0 && (
             <span>
@@ -210,39 +246,98 @@ export function TaskItem({
         </div>
       </div>
 
-      {/* Desktop hover actions */}
+      {/* Desktop hover actions — 随任务状态变化，避免出现「点了没反应」的按钮 */}
       <div className="absolute right-2 top-1/2 hidden -translate-y-1/2 items-center gap-0.5 opacity-0 transition group-hover:opacity-100 md:flex">
-        <button
-          type="button"
-          className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-[var(--color-muted)] hover:bg-[var(--color-surface-2)] hover:text-amber-500"
-          title={pinned ? '取消置顶' : '置顶'}
-          onClick={(e) => {
-            e.stopPropagation()
-            togglePin(task.id)
-          }}
-        >
-          <Pin size={16} />
-        </button>
-        <button
-          type="button"
-          className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-[var(--color-muted)] hover:bg-[var(--color-surface-2)] hover:text-red-500"
-          title="删除"
-          onClick={(e) => {
-            e.stopPropagation()
-            deleteWithUndo()
-          }}
-        >
-          <Trash2 size={16} />
-        </button>
+        {task.status === 'trashed' ? (
+          <>
+            <button
+              type="button"
+              className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-[var(--color-muted)] hover:bg-[var(--color-surface-2)] hover:text-emerald-500"
+              title="恢复"
+              onClick={(e) => {
+                e.stopPropagation()
+                restoreWithToast()
+              }}
+            >
+              <RotateCcw size={16} />
+            </button>
+            <button
+              type="button"
+              className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-[var(--color-muted)] hover:bg-[var(--color-surface-2)] hover:text-red-500"
+              title="永久删除"
+              onClick={(e) => {
+                e.stopPropagation()
+                permanentDeleteWithConfirm()
+              }}
+            >
+              <Trash2 size={16} />
+            </button>
+          </>
+        ) : task.status === 'abandoned' ? (
+          <>
+            <button
+              type="button"
+              className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-[var(--color-muted)] hover:bg-[var(--color-surface-2)] hover:text-emerald-500"
+              title="恢复"
+              onClick={(e) => {
+                e.stopPropagation()
+                restoreWithToast()
+              }}
+            >
+              <RotateCcw size={16} />
+            </button>
+            <button
+              type="button"
+              className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-[var(--color-muted)] hover:bg-[var(--color-surface-2)] hover:text-red-500"
+              title="删除"
+              onClick={(e) => {
+                e.stopPropagation()
+                deleteWithUndo()
+              }}
+            >
+              <Trash2 size={16} />
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-[var(--color-muted)] hover:bg-[var(--color-surface-2)] hover:text-amber-500"
+              title={pinned ? '取消置顶' : '置顶'}
+              onClick={(e) => {
+                e.stopPropagation()
+                togglePin(task.id)
+              }}
+            >
+              <Pin size={16} />
+            </button>
+            <button
+              type="button"
+              className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-[var(--color-muted)] hover:bg-[var(--color-surface-2)] hover:text-red-500"
+              title="删除"
+              onClick={(e) => {
+                e.stopPropagation()
+                deleteWithUndo()
+              }}
+            >
+              <Trash2 size={16} />
+            </button>
+          </>
+        )}
       </div>
     </div>
   )
 
   const moveSheet = moveOpen ? (
     <div className="fixed inset-0 z-[90] flex items-end justify-center md:items-center" role="dialog" aria-modal>
-      <button type="button" className="absolute inset-0 bg-black/40" aria-label="关闭" onClick={() => setMoveOpen(false)} />
+      <button
+        type="button"
+        className="animate-fade-in absolute inset-0 bg-black/40"
+        aria-label="关闭"
+        onClick={() => setMoveOpen(false)}
+      />
       <div
-        className="relative z-10 w-full max-w-md rounded-t-2xl bg-[var(--color-card)] p-4 shadow-xl md:rounded-2xl "
+        className="animate-slide-up relative z-10 w-full max-w-md rounded-t-2xl bg-[var(--color-card)] p-4 shadow-xl md:rounded-2xl"
         style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom, 0px))' }}
       >
         <div className="mb-3 text-sm font-semibold">移动到清单</div>
@@ -284,13 +379,14 @@ export function TaskItem({
   return (
     <>
       <SwipeableListItem
-        maxSwipe={0.7}
+        maxSwipe={0.85}
         threshold={0.35}
-        fullSwipe
+        // fullSwipe 关闭：左/右滑只展开操作按钮，需点按才触发，
+        // 不会再出现「一滑就删除」的误触。
         listType={SwipeType.IOS}
         leadingActions={leadingActions}
         trailingActions={trailingActions}
-        blockSwipe={done || task.status === 'trashed'}
+        blockSwipe={task.status === 'trashed'}
       >
         {row}
       </SwipeableListItem>

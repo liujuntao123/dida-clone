@@ -103,7 +103,10 @@ export function SettingsPage() {
   })()
 
   return (
-    <div className="h-full overflow-auto bg-[var(--color-surface-2)] p-4 md:p-6">
+    <div
+      className="h-full overflow-auto bg-[var(--color-surface-2)] p-4 md:p-6"
+      style={{ paddingTop: 'max(16px, env(safe-area-inset-top, 0px))' }}
+    >
       <h1 className="mb-6 text-lg font-semibold">设置</h1>
 
       <section className="mb-8">

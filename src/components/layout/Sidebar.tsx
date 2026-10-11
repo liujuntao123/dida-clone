@@ -6,7 +6,6 @@ import {
   Inbox,
   LayoutGrid,
   ListChecks,
-  MoreHorizontal,
   Plus,
   Search,
   Settings,
@@ -89,6 +88,7 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
       [
         { id: 'all' as const, label: '所有', Icon: Archive, count: countForSmart('all', tasks, inboxId) },
         { id: 'today' as const, label: '今天', Icon: CalendarDays, count: countForSmart('today', tasks, inboxId), badge: String(dayjs().date()) },
+        { id: 'tomorrow' as const, label: '明天', Icon: CalendarDays, count: countForSmart('tomorrow', tasks, inboxId) },
         { id: 'next7' as const, label: '最近7天', Icon: CalendarDays, count: countForSmart('next7', tasks, inboxId) },
         { id: 'inbox' as const, label: '收集箱', Icon: Inbox, count: countForSmart('inbox', tasks, inboxId) },
         { id: 'completed' as const, label: '已完成', Icon: ListChecks, count: countForSmart('completed', tasks, inboxId) },
@@ -97,6 +97,11 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
       ] as const,
     [tasks, inboxId],
   )
+
+  const todoCountForList = (listId: string) =>
+    tasks.filter((t) => !t.parentId && t.status === 'todo' && t.listId === listId).length
+  const todoCountForTag = (tagId: string) =>
+    tasks.filter((t) => !t.parentId && t.status === 'todo' && t.tags.includes(tagId)).length
 
   if (variant === 'mobile') {
     return (
@@ -170,6 +175,9 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
                   >
                     <span className="h-2.5 w-2.5 rounded-full" style={{ background: l.color }} />
                     <span className="flex-1 text-left">{l.name}</span>
+                    <span className="text-sm text-[var(--color-muted)]">
+                      {todoCountForList(l.id) || ''}
+                    </span>
                   </button>
                 ))}
             </div>
@@ -189,6 +197,9 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
                 >
                   <TagIcon size={18} style={{ color: t.color }} />
                   <span className="flex-1 text-left">{t.name}</span>
+                  <span className="text-sm text-[var(--color-muted)]">
+                    {todoCountForTag(t.id) || ''}
+                  </span>
                 </button>
               ))}
             </div>
@@ -213,21 +224,37 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
           <button
             type="button"
             className="flex min-h-11 items-center gap-2 text-[15px] text-[var(--color-fg)]/90"
-            onClick={() => setShowAddList(true)}
+            onClick={() => {
+              setShowAddTag(false)
+              setShowAddList((v) => !v)
+            }}
+            aria-expanded={showAddList}
           >
             <span className="flex h-6 w-6 items-center justify-center rounded border border-[var(--color-border)]">
               <Plus size={14} />
             </span>
-            添加
+            添加清单
           </button>
           <button
             type="button"
             className="flex min-h-11 items-center gap-2 text-[15px] text-[var(--color-fg)]/90"
+            onClick={() => {
+              setShowAddList(false)
+              setShowAddTag((v) => !v)
+            }}
+            aria-expanded={showAddTag}
+          >
+            <TagIcon size={16} />
+            添加标签
+          </button>
+          <button
+            type="button"
+            className="flex h-11 w-11 items-center justify-center text-[var(--color-fg)]/90"
             onClick={() => setManageOpen((v) => !v)}
             aria-expanded={manageOpen}
+            aria-label="搜索与主题"
           >
-            <MoreHorizontal size={18} />
-            管理
+            <Search size={18} />
           </button>
         </div>
 
@@ -252,8 +279,29 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
           </form>
         )}
 
+        {showAddTag && (
+          <form
+            className="border-t border-[var(--color-border)] px-3 py-2"
+            onSubmit={(e) => {
+              e.preventDefault()
+              if (!newTagName.trim()) return
+              addTag(newTagName.trim().replace(/^#/, ''), TAG_COLORS[tags.length % TAG_COLORS.length])
+              setNewTagName('')
+              setShowAddTag(false)
+            }}
+          >
+            <input
+              autoFocus
+              value={newTagName}
+              onChange={(e) => setNewTagName(e.target.value)}
+              placeholder="标签名称"
+              className="w-full rounded-lg bg-[var(--color-surface-2)] px-3 py-2.5 text-sm outline-none"
+            />
+          </form>
+        )}
+
         {manageOpen && (
-          <div className="border-t border-[var(--color-border)] px-3 py-2">
+          <div className="animate-fade-in border-t border-[var(--color-border)] px-3 py-2">
             <div className="relative">
               <Search size={14} className="absolute left-2.5 top-3 text-[var(--color-muted)]" />
               <input
@@ -317,6 +365,7 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
           [
             { id: 'all' as const, label: '所有', icon: Archive },
             { id: 'today' as const, label: '今天', icon: CalendarDays },
+            { id: 'tomorrow' as const, label: '明天', icon: CalendarDays },
             { id: 'next7' as const, label: '最近7天', icon: CalendarDays },
             { id: 'inbox' as const, label: '收集箱', icon: Inbox },
           ] as const
@@ -392,7 +441,8 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
         {tags.map((t) => (
           <button key={t.id} type="button" className={itemCls(isTag(t.id))} onClick={() => go({ kind: 'tag', id: t.id })}>
             <TagIcon size={14} style={{ color: t.color }} />
-            {t.name}
+            <span className="flex-1 truncate text-left">{t.name}</span>
+            <span className="text-xs text-[var(--color-muted)]">{todoCountForTag(t.id) || ''}</span>
           </button>
         ))}
 

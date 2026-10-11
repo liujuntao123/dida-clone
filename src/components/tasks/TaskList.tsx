@@ -98,7 +98,9 @@ function TaskGroupCard({
           <ChevronDown size={16} className={cn('transition', !isOpen && '-rotate-90')} />
         </span>
       </button>
-      {isOpen && <div className="px-1 pb-2">{renderItems(group.tasks)}</div>}
+      {isOpen && (
+        <div className="animate-fade-in px-1 pb-2">{renderItems(group.tasks)}</div>
+      )}
     </div>
   )
 }
@@ -179,7 +181,8 @@ export function TaskListPanel() {
 
   const renderTaskItems = (groupTasks: Task[]) =>
     isMobile ? (
-      <SwipeableList type={SwipeType.IOS} fullSwipe threshold={0.35} className="swipe-task-list">
+      // fullSwipe 关闭：滑动只展开操作按钮，点按才触发（避免误删）
+      <SwipeableList type={SwipeType.IOS} threshold={0.35} className="swipe-task-list">
         {groupTasks.map((t) => (
           <TaskItem key={t.id} task={t} compact subCount={subCounts.get(t.id)} />
         ))}

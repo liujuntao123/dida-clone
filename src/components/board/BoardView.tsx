@@ -137,7 +137,10 @@ export function BoardView() {
 
   return (
     <div className="flex h-full flex-col bg-[var(--color-surface-2)]">
-      <div className="flex min-h-12 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
+      <div
+        className="flex min-h-12 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3"
+        style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 0px))' }}
+      >
         <h1 className="text-lg font-semibold">看板</h1>
         <select
           value={boardGroupBy}

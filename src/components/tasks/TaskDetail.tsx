@@ -25,12 +25,13 @@ import {
   ListTodo,
   ListTree,
   MoreVertical,
+  Plus,
   RotateCcw,
   Tag as TagIcon,
   Trash2,
 } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
-import { PRIORITY_LABELS } from '../../lib/constants'
+import { PRIORITY_LABELS, TAG_COLORS } from '../../lib/constants'
 import { dayjs } from '../../lib/dates'
 import { uid } from '../../lib/id'
 import { PriorityFlag } from '../common/PriorityFlag'
@@ -92,6 +93,7 @@ function SortableSubtaskRow({
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
     useSortable({ id: sub.id })
   const done = sub.status === 'done'
+  const titleEmpty = !sub.title.trim()
 
   return (
     <li
@@ -119,12 +121,12 @@ function SortableSubtaskRow({
       <button
         type="button"
         className={cn(
-          'accent-caret min-w-0 flex-1 text-left text-[15px]',
+          'accent-caret min-w-0 flex-1 truncate text-left text-[15px]',
           done ? 'text-[var(--color-muted)] line-through' : 'text-[var(--color-fg)]',
         )}
         onClick={onOpen}
       >
-        {sub.title}
+        {titleEmpty ? <span className="text-[var(--color-muted)]">新子任务</span> : sub.title}
       </button>
       <button
         type="button"
@@ -170,6 +172,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
   const getSubtasks = useAppStore((s) => s.getSubtasks)
   const addSubtask = useAppStore((s) => s.addSubtask)
   const reorderSubtasks = useAppStore((s) => s.reorderSubtasks)
+  const addTag = useAppStore((s) => s.addTag)
 
   const task = useMemo(
     () => tasks.find((t) => t.id === selectedTaskId),
@@ -185,6 +188,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
   const [checkText, setCheckText] = useState('')
   const [addingCheck, setAddingCheck] = useState(false)
   const [subText, setSubText] = useState('')
+  const [newTagText, setNewTagText] = useState('')
   const checkInputRef = useRef<HTMLInputElement>(null)
   const subInputRef = useRef<HTMLInputElement>(null)
   const titleRef = useRef<HTMLTextAreaElement>(null)
@@ -201,6 +205,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
     setAddingCheck(false)
     setCheckText('')
     setSubText('')
+    setNewTagText('')
   }, [selectedTaskId])
 
   // Keep the auto-growing title textarea sized when switching tasks
@@ -274,12 +279,24 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
   }
 
   const submitSub = () => {
+    // 空输入也允许继续添加下一条（连续录入），空内容使用默认标题「新子任务」
     const t = subText.trim()
-    if (!t) return
-    addSubtask(task.id, t)
+    addSubtask(task.id, t || '新子任务')
     setSubText('')
     // keep focus so several subtasks can be added in a row
     requestAnimationFrame(() => subInputRef.current?.focus())
+  }
+
+  /** 从详情面板快速新建标签：重名则复用，创建后自动挂到当前任务。 */
+  const createTagAndAssign = () => {
+    const clean = newTagText.trim().replace(/^#/, '')
+    if (!clean) return
+    const existing = tags.find((t) => t.name === clean)
+    const tag = existing ?? addTag(clean, TAG_COLORS[tags.length % TAG_COLORS.length])
+    if (!task.tags.includes(tag.id)) {
+      updateTask(task.id, { tags: [...task.tags, tag.id] })
+    }
+    setNewTagText('')
   }
 
   const handleSubDragEnd = (e: DragEndEvent) => {
@@ -442,16 +459,28 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
               </>
             )}
             {task.status === 'done' && (
-              <button
-                type="button"
-                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-[var(--color-surface-2)]"
-                onClick={() => {
-                  toggleComplete(task.id)
-                  setMenuOpen(false)
-                }}
-              >
-                <RotateCcw size={14} /> 恢复未完成
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-[var(--color-surface-2)]"
+                  onClick={() => {
+                    toggleComplete(task.id)
+                    setMenuOpen(false)
+                  }}
+                >
+                  <RotateCcw size={14} /> 恢复未完成
+                </button>
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-red-500 hover:bg-[var(--color-surface-2)]"
+                  onClick={() => {
+                    softDelete(task.id)
+                    setMenuOpen(false)
+                  }}
+                >
+                  <Trash2 size={14} /> 删除
+                </button>
+              </>
             )}
             {(task.status === 'abandoned' || task.status === 'trashed') && (
               <>
@@ -773,31 +802,43 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
             className="mt-3 flex flex-wrap gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3"
             onClick={(e) => e.stopPropagation()}
           >
-            {tags.length === 0 ? (
-              <span className="text-xs text-[var(--color-muted)]">暂无标签，可在侧栏添加</span>
-            ) : (
-              tags.map((t) => {
-                const on = task.tags.includes(t.id)
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() =>
-                      updateTask(task.id, {
-                        tags: on ? task.tags.filter((id) => id !== t.id) : [...task.tags, t.id],
-                      })
-                    }
-                    className={cn(
-                      'min-h-9 rounded-full px-2.5 py-1 text-xs',
-                      on ? 'text-white' : 'border border-[var(--color-border)]',
-                    )}
-                    style={on ? { background: t.color } : undefined}
-                  >
-                    #{t.name}
-                  </button>
-                )
-              })
-            )}
+            {tags.map((t) => {
+              const on = task.tags.includes(t.id)
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() =>
+                    updateTask(task.id, {
+                      tags: on ? task.tags.filter((id) => id !== t.id) : [...task.tags, t.id],
+                    })
+                  }
+                  className={cn(
+                    'min-h-9 rounded-full px-2.5 py-1 text-xs',
+                    on ? 'text-white' : 'border border-[var(--color-border)]',
+                  )}
+                  style={on ? { background: t.color } : undefined}
+                >
+                  #{t.name}
+                </button>
+              )
+            })}
+            <form
+              className="flex min-h-9 items-center gap-1 rounded-full border border-dashed border-[var(--color-border)] px-2.5 py-1"
+              onSubmit={(e) => {
+                e.preventDefault()
+                createTagAndAssign()
+              }}
+            >
+              <Plus size={12} className="shrink-0 text-[var(--color-muted)]" />
+              <input
+                value={newTagText}
+                onChange={(e) => setNewTagText(e.target.value)}
+                placeholder="新建标签"
+                aria-label="新建标签"
+                className="accent-caret w-20 bg-transparent text-xs outline-none placeholder:text-[var(--color-muted)]"
+              />
+            </form>
           </div>
         )}
 
@@ -807,13 +848,16 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
               const t = tags.find((x) => x.id === tid)
               if (!t) return null
               return (
-                <span
+                <button
                   key={tid}
+                  type="button"
                   className="rounded-full px-2 py-0.5 text-xs text-white"
                   style={{ background: t.color }}
+                  title="管理标签"
+                  onClick={() => setTagsOpen(true)}
                 >
                   #{t.name}
-                </span>
+                </button>
               )
             })}
           </div>

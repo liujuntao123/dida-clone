@@ -41,6 +41,8 @@ body {
   color: var(--color-fg);
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: none;
+  /* 禁用浏览器「横向滑动 = 前进/后退」手势，避免与页面内右滑开菜单冲突 */
+  overscroll-behavior-x: none;
 }
 
 * {
@@ -198,4 +200,36 @@ textarea:focus {
 .field-focus:focus {
   border-color: var(--color-brand);
   box-shadow: 0 0 0 1px var(--color-brand);
+}
+
+/* ---------- 过场动画 ---------- */
+@keyframes dsh-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes dsh-slide-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes dsh-view-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: dsh-fade-in 0.18s ease-out both;
+}
+.animate-slide-up {
+  animation: dsh-slide-up 0.24s cubic-bezier(0.32, 0.72, 0.36, 1) both;
+}
+.animate-view-in {
+  animation: dsh-view-in 0.22s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-view-in {
+    animation: none;
+  }
 }

@@ -241,7 +241,7 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
               >
                 {icon}
                 <span className="flex-1 text-left">{label}</span>
-                {count > 0 && <span className="text-sm text-[var(--color-muted)]">{count}</span>}
+                {count > 0 && <span className="tnum text-sm text-[var(--color-muted)]">{count}</span>}
               </button>
             )
           })}

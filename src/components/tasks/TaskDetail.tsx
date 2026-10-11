@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import {
@@ -27,6 +27,7 @@ import {
   ListTodo,
   ListTree,
   MoreVertical,
+  Pin,
   Plus,
   RotateCcw,
   Tag as TagIcon,
@@ -37,6 +38,7 @@ import { useAppStore } from '../../store/useAppStore'
 import { PRIORITY_LABELS, TAG_COLORS } from '../../lib/constants'
 import { dayjs } from '../../lib/dates'
 import { uid } from '../../lib/id'
+import { useBackHandler } from '../../lib/backNav'
 import { PriorityFlag } from '../common/PriorityFlag'
 import type { Priority, Task } from '../../types'
 import { cn } from '../../lib/cn'
@@ -182,6 +184,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
   const permanentlyDelete = useAppStore((s) => s.permanentlyDelete)
   const abandonTask = useAppStore((s) => s.abandonTask)
   const toggleComplete = useAppStore((s) => s.toggleComplete)
+  const togglePin = useAppStore((s) => s.togglePin)
   const toggleChecklistItem = useAppStore((s) => s.toggleChecklistItem)
   const setChecklist = useAppStore((s) => s.setChecklist)
   const getSubtasks = useAppStore((s) => s.getSubtasks)
@@ -209,6 +212,21 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
 
   const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
+  const closePopovers = useCallback(() => {
+    setListOpen(false)
+    setPriorityOpen(false)
+    setMenuOpen(false)
+    setTagsOpen(false)
+    setDateOpen(false)
+  }, [])
+
+  // Android 返回键 / 视图层兜底：先收起详情内打开的弹出层
+  const anyPopoverOpen = listOpen || priorityOpen || menuOpen || tagsOpen || dateOpen
+  useBackHandler(anyPopoverOpen, () => {
+    closePopovers()
+    return true
+  })
+
   useEffect(() => {
     setListOpen(false)
     setPriorityOpen(false)
@@ -220,6 +238,16 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
     setSubText('')
     setNewTagText('')
   }, [selectedTaskId])
+
+  // Esc 收起弹出层（桌面键盘友好）
+  useEffect(() => {
+    if (!anyPopoverOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closePopovers()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [anyPopoverOpen, closePopovers])
 
   // Keep the auto-growing title textarea sized when switching tasks
   useEffect(() => {
@@ -265,14 +293,6 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
   const cyclePriority = () => {
     const next = ((task.priority + 1) % 4) as Priority
     updateTask(task.id, { priority: next })
-  }
-
-  const closePopovers = () => {
-    setListOpen(false)
-    setPriorityOpen(false)
-    setMenuOpen(false)
-    setTagsOpen(false)
-    setDateOpen(false)
   }
 
   /** 回车即添加检查项，并保持焦点支持连续录入。 */
@@ -404,7 +424,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
         </div>
 
         {listOpen && (
-          <div className="absolute left-3 top-12 z-20 max-h-56 w-48 overflow-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] py-1 shadow-lg">
+          <div className="animate-fade-in absolute left-3 top-12 z-20 max-h-56 w-48 overflow-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] py-1 shadow-lg">
             {lists.map((l) => (
               <button
                 key={l.id}
@@ -426,7 +446,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
         )}
 
         {priorityOpen && (
-          <div className="absolute right-12 top-12 z-20 w-36 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] py-1 shadow-lg">
+          <div className="animate-fade-in absolute right-12 top-12 z-20 w-36 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] py-1 shadow-lg">
             {([3, 2, 1, 0] as Priority[]).map((p) => (
               <button
                 key={p}
@@ -448,9 +468,20 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
         )}
 
         {menuOpen && (
-          <div className="absolute right-3 top-12 z-20 w-40 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] py-1 shadow-lg">
+          <div className="animate-fade-in absolute right-3 top-12 z-20 w-40 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] py-1 shadow-lg">
             {task.status === 'todo' && (
               <>
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-[var(--color-surface-2)]"
+                  onClick={() => {
+                    togglePin(task.id)
+                    setMenuOpen(false)
+                  }}
+                >
+                  <Pin size={14} className={task.pinned ? 'text-amber-500' : ''} />
+                  {task.pinned ? '取消置顶' : '置顶'}
+                </button>
                 <button
                   type="button"
                   className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-[var(--color-surface-2)]"
@@ -576,7 +607,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
 
         {dateOpen && (
           <div
-            className="mb-3 space-y-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3"
+            className="animate-fade-in mb-3 space-y-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3"
             onClick={(e) => e.stopPropagation()}
           >
             {/* 快捷改期 */}
@@ -803,11 +834,11 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
                   className={cn(
                     'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] border transition',
                     c.done
-                      ? 'border-[var(--color-muted)] bg-[var(--color-muted)]/40 text-[var(--color-fg)]'
-                      : 'border-[var(--color-muted)]',
+                      ? 'border-brand bg-brand text-white'
+                      : 'border-[var(--color-muted)]/70 text-transparent hover:border-brand',
                   )}
                 >
-                  {c.done && <Check size={12} strokeWidth={3} />}
+                  <Check size={12} strokeWidth={3} />
                 </button>
                 <input
                   value={c.text}
@@ -936,9 +967,9 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
         </div>
       </div>
 
-      {/* Bottom toolbar — 标签 / 检查项 / 子任务（附件暂不支持） */}
+      {/* Bottom toolbar — 标签 / 检查项 / 子任务（居中排布，参考滴答清单） */}
       <div
-        className="flex shrink-0 items-center gap-1 border-t border-[var(--color-border)] px-2"
+        className="flex shrink-0 items-center justify-center gap-12 border-t border-[var(--color-border)] px-2"
         style={{
           paddingBottom:
             variant === 'sheet'

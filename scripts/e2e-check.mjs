@@ -333,6 +333,98 @@ async function mobileSuite(browser) {
   }
   await shot(page, 'm12-tabs')
 
+  // 13. 日历：左右滑切换月份 + 方向动画
+  {
+    await page.evaluate(() => {
+      const btn = document.querySelector('nav[aria-label="主导航"] button[aria-label="日历"]')
+      btn?.click()
+    })
+    await sleep(500)
+    const title0 = await page.$eval('h1', (el) => el.textContent)
+    const zone = await page.evaluate(() => {
+      const r = document.querySelector('[data-no-swipe-menu]')?.getBoundingClientRect()
+      return r ? { x: r.x + r.width / 2, y: r.y + r.height / 2, w: r.width } : null
+    })
+    ok(!!zone, '日历网格滑动区存在')
+    if (zone) {
+      // 左滑 → 下个月
+      await swipe(page, zone.x + zone.w * 0.3, zone.y, zone.x - zone.w * 0.3, zone.y + 2)
+      await sleep(500)
+      const titleNext = await page.$eval('h1', (el) => el.textContent)
+      ok(titleNext !== title0, `日历左滑切换到下月 (${title0} → ${titleNext})`)
+      ok(await page.evaluate(() => !!document.querySelector('.animate-month-next, .animate-month-prev')), '切月带方向动画')
+      // 右滑 → 回上个月
+      await swipe(page, zone.x - zone.w * 0.3, zone.y, zone.x + zone.w * 0.3, zone.y + 2)
+      await sleep(500)
+      const titleBack = await page.$eval('h1', (el) => el.textContent)
+      ok(titleBack === title0, `日历右滑切回当月 (${titleBack})`)
+    }
+    await shot(page, 'm13-calendar')
+  }
+
+  // 14. 搜索页：圆角搜索框 + 任务/标签/清单范围 + 取消返回
+  {
+    d = await openDrawer()
+    await page.evaluate(() => document.querySelector('button[aria-label="搜索"]')?.click())
+    await sleep(500)
+    const searchH1 = await page.$eval('h1', (el) => el.textContent)
+    ok(searchH1 === '搜索', `搜索页打开 (h1=${searchH1})`)
+    ok(!!(await page.$('input[placeholder="搜索"]')), '搜索页有搜索输入框')
+    const pills = await page.evaluate(
+      () =>
+        [...document.querySelectorAll('button')].filter(
+          (b) => ['任务', '标签', '清单'].includes(b.textContent.trim()) && b.getAttribute('aria-pressed') !== null,
+        ).length,
+    )
+    ok(pills === 3, '范围切换 任务/标签/清单 齐备')
+    await page.type('input[placeholder="搜索"]', '自动化')
+    await sleep(400)
+    await page.evaluate(() => {
+      const pill = [...document.querySelectorAll('button')].find(
+        (b) => b.textContent.trim() === '标签' && b.getAttribute('aria-pressed') !== null,
+      )
+      pill?.click()
+    })
+    await sleep(400)
+    const tagHit = await page.evaluate(() => document.body.innerText.includes('自动化标签'))
+    ok(tagHit, '「标签」范围能搜到已建标签')
+    await shot(page, 'm14-search')
+    await page.evaluate(() => {
+      const btn = [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === '取消')
+      btn?.click()
+    })
+    await sleep(500)
+    const backH1 = await page.$eval('h1', (el) => el.textContent)
+    ok(backH1 === '今天', `搜索页「取消」回到主页面 (h1=${backH1})`)
+  }
+
+  // 15. FAB 位置在视口变化（模拟键盘弹出/收起）下保持稳定
+  {
+    await page.evaluate(() => {
+      const btn = document.querySelector('nav[aria-label="主导航"] button[aria-label="任务"]')
+      btn?.click()
+    })
+    await sleep(500)
+    const fabEl = await page.$('button[aria-label="添加任务"]')
+    const fab0 = await fabEl.boundingBox()
+    // 模拟键盘弹出：视口变矮
+    await page.setViewport({ width: 390, height: 500, hasTouch: true, isMobile: true, deviceScaleFactor: 2 })
+    await sleep(400)
+    const fab1 = await fabEl.boundingBox()
+    ok(
+      fab1 && fab1.y >= 0 && fab1.y + fab1.height <= 500,
+      `视口变矮（键盘）时 FAB 仍在可视区内 (y=${Math.round(fab1?.y ?? -1)})`,
+    )
+    // 键盘收起：视口还原
+    await page.setViewport({ width: 390, height: 844, hasTouch: true, isMobile: true, deviceScaleFactor: 2 })
+    await sleep(400)
+    const fab2 = await fabEl.boundingBox()
+    ok(
+      Math.abs(fab2.y - fab0.y) < 1.5,
+      `视口恢复后 FAB 回到原位 (Δ=${(fab2.y - fab0.y).toFixed(1)}px)`,
+    )
+  }
+
   ok(errors.length === 0, `无页面错误 (${errors.length})`)
   if (errors.length) console.log(errors.slice(0, 5).join('\n'))
   await page.close()

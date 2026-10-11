@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAppStore } from '../store/useAppStore'
 import { ensureNotificationPermission } from '../lib/reminders'
 import { LIST_COLORS } from '../lib/constants'
+import { PageHeader } from '../components/common/PageHeader'
 import { ThemeToggle } from '../components/common/ThemeToggle'
 import { loadSyncConfig, saveSyncConfig, isSyncConfigured } from '../lib/syncConfig'
 import {
@@ -28,6 +29,8 @@ export function SettingsPage() {
   const tags = useAppStore((s) => s.tags)
   const deleteTag = useAppStore((s) => s.deleteTag)
   const theme = useAppStore((s) => s.theme)
+  const setActiveView = useAppStore((s) => s.setActiveView)
+  const lastListView = useAppStore((s) => s.lastListView)
 
   const [apiBaseUrl, setApiBaseUrl] = useState('')
   const [accessKey, setAccessKey] = useState('')
@@ -103,12 +106,11 @@ export function SettingsPage() {
   })()
 
   return (
-    <div
-      className="h-full overflow-auto bg-[var(--color-surface-2)] p-4 md:p-6"
-      style={{ paddingTop: 'max(16px, env(safe-area-inset-top, 0px))' }}
-    >
-      <h1 className="mb-6 text-lg font-semibold">设置</h1>
-
+    <div className="flex h-full min-w-0 flex-1 flex-col bg-[var(--color-surface-2)]">
+      <PageHeader title="设置" onBack={() => setActiveView(lastListView)} />
+      <div
+        className="flex-1 overflow-y-auto p-4 md:p-6"
+      >
       <section className="mb-8">
         <h2 className="mb-3 text-sm font-medium text-[var(--color-muted)]">外观</h2>
         <div className="flex min-h-11 items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-3">
@@ -317,6 +319,7 @@ export function SettingsPage() {
           ))}
         </ul>
       </section>
+      </div>
     </div>
   )
 }

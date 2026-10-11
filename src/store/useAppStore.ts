@@ -158,6 +158,8 @@ export const useAppStore = create<AppState>()(
         set({
           activeView: v,
           sidebarOpen: false,
+          // 切换视图时收起任务详情抽屉/面板，避免详情悬浮在与所选任务无关的页面上
+          selectedTaskId: null,
           ...(v.kind !== 'module' ? { lastListView: v } : null),
         }),
       setSelectedTaskId: (id) => set({ selectedTaskId: id }),
@@ -391,7 +393,18 @@ export const useAppStore = create<AppState>()(
       },
 
       markReminderNotified: (taskId) =>
-        set({ notifiedReminders: [...new Set([...get().notifiedReminders, taskId])] }),
+        set({
+          // 顺带修剪：只保留仍带有提醒的待办任务 id，防止长期无限增长
+          notifiedReminders: [
+            ...new Set([
+              ...get().notifiedReminders.filter((id) => {
+                const t = get().tasks.find((x) => x.id === id)
+                return !!t && !!t.remindAt && t.status === 'todo'
+              }),
+              taskId,
+            ]),
+          ],
+        }),
 
       getVisibleTasks: () => {
         const { tasks, activeView, sortBy, filter } = get()

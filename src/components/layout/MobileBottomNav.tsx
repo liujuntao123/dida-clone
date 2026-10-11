@@ -64,6 +64,10 @@ export function MobileBottomNav() {
       return
     }
     setSidebarOpen(false)
+    // 切换主 Tab 时收起任务详情抽屉，避免抽屉悬浮在其他页签上（对齐滴答清单行为）
+    if (useAppStore.getState().selectedTaskId) {
+      useAppStore.getState().setSelectedTaskId(null)
+    }
     if (id === 'tasks') {
       setActiveView(isTaskView(activeView) ? activeView : lastTaskView.current)
       return

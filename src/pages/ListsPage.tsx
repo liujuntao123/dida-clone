@@ -4,6 +4,7 @@ import { PageHeader } from '../components/common/PageHeader'
 import { ColorPicker } from '../components/common/ColorPicker'
 import { useAppStore } from '../store/useAppStore'
 import { useToastStore } from '../store/useToastStore'
+import { useBackHandler } from '../lib/backNav'
 import { LIST_COLORS } from '../lib/constants'
 import { cn } from '../lib/cn'
 import type { TaskList } from '../types'
@@ -24,6 +25,11 @@ export function ListsPage() {
   const [editing, setEditing] = useState<TaskList | null>(null)
   const [name, setName] = useState('')
   const [color, setColor] = useState<string>(LIST_COLORS[0])
+  // Android 返回键：清单表单页先回到清单列表，而不是直接退出模块页
+  useBackHandler(mode === 'form', () => {
+    setMode('list')
+    return true
+  })
 
   const todoCount = (listId: string) =>
     tasks.filter((t) => !t.parentId && t.status === 'todo' && t.listId === listId).length

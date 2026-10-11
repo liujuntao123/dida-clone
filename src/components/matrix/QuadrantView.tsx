@@ -173,7 +173,7 @@ function Quad({
           {q.roman}
         </span>
         <span className={cn('truncate text-[14px] font-medium', q.labelClass)}>{q.title}</span>
-        <span className="ml-auto shrink-0 text-xs text-[var(--color-muted)]">{todoTasks.length || ''}</span>
+        <span className="tnum ml-auto shrink-0 text-xs text-[var(--color-muted)]">{todoTasks.length || ''}</span>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
@@ -248,7 +248,7 @@ export function QuadrantView() {
         className="relative flex min-h-12 shrink-0 items-center justify-between px-4"
         style={{ paddingTop: 'max(10px, env(safe-area-inset-top, 0px))' }}
       >
-        <h1 className="text-xl font-semibold">四象限</h1>
+        <h1 className="text-[24px] font-bold tracking-tight">四象限</h1>
         <button
           type="button"
           aria-label="更多"

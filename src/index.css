@@ -11,7 +11,9 @@
   --color-border: #e5e5ea;
   --color-muted: #8e8e93;
   --color-fg: #1c1c1e;
-  --font-sans: "Inter", "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto,
+    "PingFang SC", "HarmonyOS Sans SC", "MiSans", "Noto Sans SC", "Microsoft YaHei",
+    system-ui, sans-serif;
 }
 
 .dark {
@@ -40,6 +42,7 @@ body {
   background: var(--color-surface-2);
   color: var(--color-fg);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   overscroll-behavior-y: none;
   /* 禁用浏览器「横向滑动 = 前进/后退」手势，避免与页面内右滑开菜单冲突 */
   overscroll-behavior-x: none;
@@ -51,6 +54,18 @@ body {
 
 button, a {
   -webkit-tap-highlight-color: transparent;
+}
+
+/* 键盘导航焦点环（触摸点击不触发） */
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-brand) 65%, transparent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* 品牌色文本选区 */
+::selection {
+  background: color-mix(in srgb, var(--color-brand) 30%, transparent);
 }
 
 input[type="checkbox"],
@@ -75,15 +90,23 @@ textarea:focus {
 }
 
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #c7c7cc;
-  border-radius: 4px;
+  background: color-mix(in srgb, #c7c7cc 75%, transparent);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 .dark ::-webkit-scrollbar-thumb {
-  background: #3a3a3c;
+  background: color-mix(in srgb, #3a3a3c 80%, transparent);
+}
+
+/* 数字用等宽数字，计数/时间列更整齐 */
+.tnum {
+  font-variant-numeric: tabular-nums;
 }
 
 .swipe-task-list {
@@ -215,6 +238,14 @@ textarea:focus {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
+@keyframes dsh-month-next {
+  from { opacity: 0; transform: translateX(28px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes dsh-month-prev {
+  from { opacity: 0; transform: translateX(-28px); }
+  to { opacity: 1; transform: translateX(0); }
+}
 
 .animate-fade-in {
   animation: dsh-fade-in 0.18s ease-out both;
@@ -225,11 +256,19 @@ textarea:focus {
 .animate-view-in {
   animation: dsh-view-in 0.22s ease-out both;
 }
+.animate-month-next {
+  animation: dsh-month-next 0.24s cubic-bezier(0.32, 0.72, 0.36, 1) both;
+}
+.animate-month-prev {
+  animation: dsh-month-prev 0.24s cubic-bezier(0.32, 0.72, 0.36, 1) both;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in,
   .animate-slide-up,
-  .animate-view-in {
+  .animate-view-in,
+  .animate-month-next,
+  .animate-month-prev {
     animation: none;
   }
 }

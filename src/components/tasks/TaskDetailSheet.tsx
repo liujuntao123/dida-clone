@@ -3,6 +3,7 @@ import { Drawer } from 'vaul'
 import { useAppStore } from '../../store/useAppStore'
 import { TaskDetail } from './TaskDetail'
 import { useIsMobile } from '../../hooks/useIsMobile'
+import { useBackHandler } from '../../lib/backNav'
 
 /**
  * Mobile-only bottom sheet for task detail (vaul).
@@ -17,6 +18,13 @@ export function TaskDetailSheet() {
   const setSelectedTaskId = useAppStore((s) => s.setSelectedTaskId)
   const open = isMobile && !!selectedTaskId
   const [snap, setSnap] = useState<number | string | null>(0.55)
+
+  // Android 返回键：先关详情抽屉，再考虑视图回退
+  useBackHandler(open, () => {
+    setSelectedTaskId(null)
+    setSnap(0.55)
+    return true
+  })
 
   if (!isMobile) return null
 

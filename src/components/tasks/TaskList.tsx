@@ -239,9 +239,9 @@ export function TaskListPanel() {
           )}
           <h1 className="flex-1 truncate text-center text-lg font-semibold md:text-left md:pl-2">{title}</h1>
           {isMobile ? (
-            <span className="min-w-11 pr-1 text-right text-xs text-[var(--color-muted)]">{tasks.length} 项</span>
+            <span className="tnum min-w-11 pr-1 text-right text-xs text-[var(--color-muted)]">{tasks.length} 项</span>
           ) : (
-            <span className="pr-3 text-xs text-[var(--color-muted)]">{tasks.length} 项</span>
+            <span className="tnum pr-3 text-xs text-[var(--color-muted)]">{tasks.length} 项</span>
           )}
         </div>
         {showQuickAdd && !isMobile && <QuickAdd />}

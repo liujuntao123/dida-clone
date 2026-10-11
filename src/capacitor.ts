@@ -3,6 +3,7 @@ import { App } from '@capacitor/app'
 import { StatusBar } from '@capacitor/status-bar'
 import { Keyboard, KeyboardResize } from '@capacitor/keyboard'
 import { applyTheme, readPersistedTheme } from './lib/theme'
+import { handleAppBack } from './lib/backNav'
 
 /** Initialize Capacitor plugins when running as a native shell. */
 export async function initCapacitor() {
@@ -22,7 +23,10 @@ export async function initCapacitor() {
     // Keyboard plugin optional
   }
 
+  // Android 返回键：优先走应用内层级（抽屉 → 详情 → 全屏模块页 → 主页面），
+  // 都退无可退时才退出应用。应用内不使用浏览器历史，不能直接 history.back()。
   App.addListener('backButton', ({ canGoBack }) => {
+    if (handleAppBack()) return
     if (canGoBack) {
       window.history.back()
     } else {

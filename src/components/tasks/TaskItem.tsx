@@ -24,6 +24,7 @@ import { PriorityFlag } from '../common/PriorityFlag'
 import { formatDue, dayjs } from '../../lib/dates'
 import { cn } from '../../lib/cn'
 import { useIsMobile } from '../../hooks/useIsMobile'
+import { useBackHandler } from '../../lib/backNav'
 import type { Task } from '../../types'
 
 function dueAtDay(offsetDays: number, preserveTime?: string | null) {
@@ -61,6 +62,11 @@ export function TaskItem({
   const tags = useAppStore((s) => s.tags)
   const showToast = useToastStore((s) => s.show)
   const [moveOpen, setMoveOpen] = useState(false)
+  // Android 返回键：先关「移动到清单」弹层
+  useBackHandler(moveOpen, () => {
+    setMoveOpen(false)
+    return true
+  })
 
   const list = lists.find((l) => l.id === task.listId)
   const taskTags = tags.filter((t) => task.tags.includes(t.id))

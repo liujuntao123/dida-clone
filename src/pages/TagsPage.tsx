@@ -4,6 +4,7 @@ import { PageHeader } from '../components/common/PageHeader'
 import { ColorPicker } from '../components/common/ColorPicker'
 import { useAppStore } from '../store/useAppStore'
 import { useToastStore } from '../store/useToastStore'
+import { useBackHandler } from '../lib/backNav'
 import { cn } from '../lib/cn'
 import type { Tag } from '../types'
 
@@ -29,6 +30,11 @@ export function TagsPage() {
   const [editing, setEditing] = useState<Tag | null>(null)
   const [name, setName] = useState('')
   const [color, setColor] = useState<string>('#4d8ef7')
+  // Android 返回键：标签表单页先回到标签列表
+  useBackHandler(mode === 'form', () => {
+    setMode('list')
+    return true
+  })
 
   const todoCount = (tagId: string) =>
     tasks.filter((t) => !t.parentId && t.status === 'todo' && t.tags.includes(tagId)).length

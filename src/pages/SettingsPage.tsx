@@ -4,16 +4,13 @@ import {
   Bell,
   Check,
   ChevronDown,
-  ChevronRight,
   Cloud,
   Download,
   Eye,
   EyeOff,
   Info,
-  ListFilter,
   Loader2,
   Palette,
-  SlidersHorizontal,
   Upload,
 } from 'lucide-react'
 import { cn } from '../lib/cn'
@@ -101,10 +98,6 @@ function Row({
   return <div className={base}>{inner}</div>
 }
 
-function Chevron() {
-  return <ChevronRight size={17} strokeWidth={1.75} className="shrink-0 text-[var(--color-muted)]/70" />
-}
-
 /** 同步状态圆点 */
 function StatusDot({ status }: { status: SyncStatus }) {
   const color =
@@ -147,7 +140,6 @@ function statusTextOf(status: SyncStatus): string {
 export function SettingsPage() {
   const theme = useAppStore((s) => s.theme)
   const setTheme = useAppStore((s) => s.setTheme)
-  const filter = useAppStore((s) => s.filter)
   const setActiveView = useAppStore((s) => s.setActiveView)
   const lastListView = useAppStore((s) => s.lastListView)
   const goBack = () => setActiveView(lastListView)
@@ -246,7 +238,6 @@ export function SettingsPage() {
     }
   })()
 
-  const filterActive = filter.priorities.length + filter.listIds.length + filter.tagIds.length > 0 || !!filter.query
   const configured = isSyncConfigured({ ...loadSyncConfig(), apiBaseUrl, accessKey })
 
   return (
@@ -494,18 +485,6 @@ export function SettingsPage() {
               </div>
             </div>
           )}
-        </Section>
-
-        {/* 管理 */}
-        <Section title="管理" icon={<SlidersHorizontal size={13} strokeWidth={1.75} />}>
-          <Row
-            icon={<ListFilter size={17} strokeWidth={1.75} />}
-            iconColor="#9a6ef7"
-            title="过滤器"
-            subtitle={filterActive ? '筛选生效中' : '未启用'}
-            right={<Chevron />}
-            onClick={() => setActiveView({ kind: 'module', id: 'filters' })}
-          />
         </Section>
 
         {/* 关于 */}

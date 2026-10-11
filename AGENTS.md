@@ -40,7 +40,8 @@ E2E 的 headless 特殊性（改脚本/环境时注意）：
 - ⚠️ **禁止给 `button` 等元素全局加 `touch-action: manipulation`**：它会改变合成器的手势接管方式，令 touchmove 变为 non-cancelable，横滑守卫失效 → 左右滑直接触发浏览器历史导航（实测回归过一次）。同理，自定义横滑区域（如日历切月）要显式设 `touch-action: pan-y`，否则手势会被浏览器抢走。
 - Tailwind 的 `group-hover` 等规则包在 `@media (hover:hover)` 里，headless 默认 `hover:none`；桌面套件用 `--blink-settings=primaryHoverType=2,...` 模拟鼠标设备（见 launch 调用）。
 - 日期类测试数据别写死时间词（如「14:00」），chrono-node 会按当前时刻滚到明天。
-- 侧栏抽屉是**常驻挂载**（仅位移隐藏），其「添加」按钮与快速添加抽屉的「添加」重名——e2e 里操作快速添加必须在 `[data-vaul-drawer]` 内查找按钮。
+- 侧栏抽屉是**常驻挂载**（仅位移隐藏），其「添加」按钮易与页面其他「添加」重名——e2e 里操作快速添加抽屉必须在 `[data-vaul-drawer]` 内查找（发送按钮是 `button[type="submit"]`，无文字）。
+- **快速添加抽屉的键盘 / 高度**（`MobileFab.tsx`）：vaul 的 `repositionInputs` 会用内联像素冻结抽屉高度，与面板开合的内容高度变化冲突——抽屉设了 `repositionInputs={false}`，键盘避让由 visualViewport 自管（`kb` 状态 → `marginBottom`；Android 压缩式键盘下为 0，零开销）。工具面板与键盘互斥：开面板先 `blur()`，重新聚焦标题自动收面板。
 - 详情抽屉（vaul）用 pointer 事件关闭遮罩，`el.click()` 关不掉——e2e 里通过切换 Tab / 视图让 store 清掉 `selectedTaskId`。
 
 ## 代码约定 / 已知陷阱

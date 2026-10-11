@@ -159,6 +159,10 @@ export function MobileFab() {
   const [newTagText, setNewTagText] = useState('')
   const [vw, setVw] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 390))
   const [vh, setVh] = useState(() => (typeof window !== 'undefined' ? window.innerHeight : 700))
+  // 键盘（覆盖式弹出的键盘，如 iOS Safari）遮住抽屉底部时把抽屉整体抬起来。
+  // Android WebView / Chrome 是压缩布局视口（innerHeight 变小），fixed bottom-0
+  // 自动位于键盘上方，此值保持 0，不产生任何副作用。
+  const [kb, setKb] = useState(0)
   const [pos, setPos] = useState<FabPos>(() => readPos())
   const [live, setLive] = useState<{ x: number; y: number } | null>(null)
   const drag = useRef<{
@@ -181,6 +185,20 @@ export function MobileFab() {
     sync()
     window.addEventListener('resize', sync)
     return () => window.removeEventListener('resize', sync)
+  }, [])
+
+  // 覆盖式键盘的遮挡量（visualViewport 比 layout viewport 矮的部分）
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    const sync = () => {
+      const overlap = window.innerHeight - vv.height
+      // 阈值过滤掉工具栏收起/地址栏等小幅变化
+      setKb(overlap > 120 ? Math.round(overlap) : 0)
+    }
+    sync()
+    vv.addEventListener('resize', sync)
+    return () => vv.removeEventListener('resize', sync)
   }, [])
 
   const persist = useCallback((next: FabPos) => {
@@ -215,6 +233,34 @@ export function MobileFab() {
     resetDraft()
     return true
   })
+
+  /** 收起键盘：工具面板与键盘互斥，面板需要完整的可视空间（TickTick 同款）。 */
+  const blurDraft = () => {
+    const el = document.activeElement as HTMLElement | null
+    if (el && el !== document.body) el.blur()
+  }
+
+  /** 工具面板开合：打开时收起键盘、关掉描述，保证抽屉高度始终可控。 */
+  const toggleTool = (next: Exclude<AddTool, null>) => {
+    if (tool === next) {
+      setTool(null)
+      return
+    }
+    blurDraft()
+    setNoteOpen(false)
+    setTool(next)
+  }
+
+  /** 描述区开合：与工具面板互斥。 */
+  const toggleNote = () => {
+    if (noteOpen) {
+      setNoteOpen(false)
+      return
+    }
+    blurDraft()
+    setTool(null)
+    setNoteOpen(true)
+  }
 
   const openDrawer = () => {
     setListId(targetList?.id ?? INBOX_ID)
@@ -343,12 +389,20 @@ export function MobileFab() {
           setOpen(v)
           if (!v) resetDraft()
         }}
+        // 关掉 vaul 的键盘重排：它会用内联像素冻结抽屉高度，与面板开合引起的
+        // 内容高度变化冲突（高度卡死/裁切）。键盘避让由上面的 kb 状态自己处理。
+        repositionInputs={false}
       >
         <Drawer.Portal>
           <Drawer.Overlay className="fixed inset-0 z-50 bg-black/50 md:hidden" />
           <Drawer.Content
             className="fixed inset-x-0 bottom-0 z-50 flex max-h-[70vh] flex-col rounded-t-[20px] bg-[var(--color-card)] outline-none md:hidden"
-            style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom, 0px))' }}
+            style={{
+              paddingBottom: 'max(8px, env(safe-area-inset-bottom, 0px))',
+              ...(kb > 0
+                ? { marginBottom: kb, maxHeight: `calc(100dvh - ${kb + 12}px)` }
+                : null),
+            }}
             onOpenAutoFocus={(e) => {
               e.preventDefault()
               requestAnimationFrame(() => inputRef.current?.focus())
@@ -369,6 +423,10 @@ export function MobileFab() {
                 ref={inputRef}
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
+                onFocus={() => {
+                  // 重新聚焦标题时收起工具面板，标题 + 键盘独占空间
+                  if (tool) setTool(null)
+                }}
                 placeholder="准备做什么？试试「明天 14:00 开会」"
                 enterKeyHint="done"
                 className="accent-caret min-h-11 w-full bg-transparent px-1 text-[16px] font-medium text-[var(--color-fg)] outline-none placeholder:font-normal placeholder:text-[var(--color-muted)]"
@@ -587,7 +645,7 @@ export function MobileFab() {
                   aria-label="设置日期"
                   aria-expanded={tool === 'date'}
                   className={toolBtnCls(tool === 'date' || !!due)}
-                  onClick={() => setTool(tool === 'date' ? null : 'date')}
+                  onClick={() => toggleTool('date')}
                 >
                   <CalendarDays size={21} strokeWidth={1.75} />
                 </button>
@@ -596,7 +654,7 @@ export function MobileFab() {
                   aria-label={`优先级：${PRIORITY_LABELS[priority]}`}
                   aria-expanded={tool === 'priority'}
                   className={toolBtnCls(tool === 'priority' || priority > 0)}
-                  onClick={() => setTool(tool === 'priority' ? null : 'priority')}
+                  onClick={() => toggleTool('priority')}
                 >
                   <Flag
                     size={20}
@@ -610,7 +668,7 @@ export function MobileFab() {
                   aria-label={`标签${tagIds.length ? `：已选 ${tagIds.length} 个` : ''}`}
                   aria-expanded={tool === 'tags'}
                   className={toolBtnCls(tool === 'tags' || tagIds.length > 0)}
-                  onClick={() => setTool(tool === 'tags' ? null : 'tags')}
+                  onClick={() => toggleTool('tags')}
                 >
                   <TagIcon size={20} strokeWidth={1.75} />
                   {tagIds.length > 0 && (
@@ -624,7 +682,7 @@ export function MobileFab() {
                   aria-label="移动到清单"
                   aria-expanded={tool === 'list'}
                   className={toolBtnCls(tool === 'list' || listChanged)}
-                  onClick={() => setTool(tool === 'list' ? null : 'list')}
+                  onClick={() => toggleTool('list')}
                 >
                   <FolderInput size={20} strokeWidth={1.75} />
                 </button>
@@ -633,7 +691,7 @@ export function MobileFab() {
                   aria-label="描述"
                   aria-expanded={noteOpen}
                   className={toolBtnCls(noteOpen || !!note.trim())}
-                  onClick={() => setNoteOpen((v) => !v)}
+                  onClick={() => toggleNote()}
                 >
                   <Ellipsis size={20} strokeWidth={1.75} />
                 </button>

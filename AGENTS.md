@@ -30,9 +30,17 @@ git tag -a v0.10.0 -m "..." && git push origin v0.10.0
 
 ```bash
 npx tsc -b && npm run lint && npm run build
-npm run preview -- --port 4173 &     # 或后台起服务
-node scripts/e2e-check.mjs           # 55 项断言，移动端 + 桌面端
+npm run e2e                          # 一键：拉起 wrangler dev(随机端口)+preview → 跑断言 → 回收
+# 或手动：cd worker && npx wrangler dev --port 3000 &  npm run preview -- --port 4173 &
+#        node scripts/e2e-check.mjs   （断言含登录引导：自动注册测试账号并注入会话）
+# 账户/同步浏览器冒烟：npm run auth-check（需 wrangler dev + vite dev）
+# worker 同步协议套件：BASE=http://127.0.0.1:<port> bash worker/test/sync-protocol-test.sh
+# 后台管理 SPA：cd admin && npm run build
 ```
+
+⚠️ v0.12 起应用必须登录后使用；本地 e2e 依赖 wrangler dev 的本地 D1
+（首次：`cd worker && npx wrangler d1 execute dida-clone-db --local --file=schema.sql`，
+worker/.dev.vars 参考 .dev.vars.example）。
 
 E2E 的 headless 特殊性（改脚本/环境时注意）：
 
@@ -43,6 +51,21 @@ E2E 的 headless 特殊性（改脚本/环境时注意）：
 - 侧栏抽屉是**常驻挂载**（仅位移隐藏），其「添加」按钮易与页面其他「添加」重名——e2e 里操作快速添加抽屉必须在 `[data-vaul-drawer]` 内查找（发送按钮是 `button[type="submit"]`，无文字）。
 - **快速添加抽屉的键盘 / 高度**（`MobileFab.tsx`）：vaul 的 `repositionInputs` 会用内联像素冻结抽屉高度，与面板开合的内容高度变化冲突——抽屉设了 `repositionInputs={false}`，键盘避让由 visualViewport 自管（`kb` 状态 → `marginBottom`；Android 压缩式键盘下为 0，零开销）。工具面板与键盘互斥：开面板先 `blur()`，重新聚焦标题自动收面板。
 - 详情抽屉（vaul）用 pointer 事件关闭遮罩，`el.click()` 关不掉——e2e 里通过切换 Tab / 视图让 store 清掉 `selectedTaskId`。
+
+## 云同步 / 账户（v0.12+）
+
+- **协议**：实体级 LWW（`(updatedAt, deviceId)` 裁决，精确并列删除胜）+ 单调 seq 游标 + 墓碑；
+  设计全文在 `docs/sync-design.md`，改同步逻辑前必读。
+- **服务端**：`worker/src/`——auth.ts（better-auth，Bearer + admin 插件）、sync.ts（LWW 引擎，
+  D1 batch 原子写）、admin.ts（统计/日志/维护，role=admin 门禁）。better-auth 表列名与
+  Kysely 适配器约定绑定，schema.sql 里勿随意改名。
+- **客户端**：`src/lib/cloudSync.ts`（引擎：单飞/防抖/退避/墓碑检测）、`src/lib/auth.ts`
+  （better-auth 协议的极简 fetch 封装，勿引入 better-auth 客户端全量包）、`src/lib/session.ts`
+  （会话生命周期）、`src/lib/account.ts`（每账号游标/设备/墓碑元数据）。
+- **同步设置项**：theme / sortBy / calendarMode 走 `settings` 实体（id=app）；
+  notifiedReminders 与视图状态是设备本地的，不同步。
+- **已知环境坑**：某些受限沙箱内，wrangler dev 的首个注册请求若来自 Node fetch 会永久挂起
+  （curl 先行可解）；被反复杀/起的端口可能被代理层劫持——`run-e2e` 因此随机化端口 + curl 预热。
 
 ## 代码约定 / 已知陷阱
 

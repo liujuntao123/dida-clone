@@ -1,7 +1,7 @@
 # 滴答清单 · Web 复刻（P0 + P1）
 
 基于 Vite + React + TypeScript + Tailwind CSS 的滴答清单风格任务管理应用。  
-本地 Zustand + localStorage；可选 **Cloudflare Worker + D1** 做单用户云同步（self-host）。
+本地 Zustand + localStorage（离线优先）；**Cloudflare Worker + D1** 多用户账户云同步（邮箱注册，self-host）。
 
 ## 启动
 
@@ -20,89 +20,79 @@ npm run preview
 
 浏览器打开终端提示的本地地址（默认 `http://localhost:5173`）。
 
-## 云同步（Cloudflare）
+## 账户与云同步（Cloudflare）
 
-单用户、Access Key 鉴权，适合私人 self-host。多设备填同一 Worker URL + Key 即可同步。
+多用户账户体系（**better-auth**）+ 实体级 LWW 云同步。注册只需**邮箱 + 密码**；
+本地永远可用，登录后自动多端同步。
 
 ### 架构
 
 ```
-前端 (Zustand persist)
-    │  Authorization: Bearer <ACCESS_KEY>
+前端 (Zustand persist，离线优先)
+    │  Authorization: Bearer <session token>
     ▼
-Cloudflare Worker  dida-clone-sync
-    │
+Cloudflare Worker (Hono)
+    ├─ /api/auth/*      better-auth：注册 / 登录 / 会话 / 改密 / 设备管理
+    ├─ /api/sync        实体级 LWW 同步（状态基 + 单调游标，详见 docs/sync-design.md）
+    ├─ /api/export      全量导出（JSON）
+    ├─ /admin/api/*     后台管理 API（role=admin）
+    └─ /admin/*         后台管理 SaaS（独立 SPA，静态资产托管）
     ▼
-D1  dida-clone-db  (表 app_state：整包 JSON + revision)
+D1：entity（实体+墓碑）/ data_seq（游标）/ sync_log / audit_log
 ```
 
-API：
+### 一致性设计（要点）
 
-| 方法 | 路径 | 鉴权 | 说明 |
-|------|------|------|------|
-| GET | `/api/health` | 否 | 健康检查 |
-| GET | `/api/state` | 是 | 拉取 `{ revision, updatedAt, state }` |
-| PUT | `/api/state` | 是 | 带 `revision` 乐观锁上传；落后则 409 |
-| POST | `/api/state/force` | 是 | 强制覆盖云端 |
+- **状态基同步**：每轮全量上送本地实体，天然幂等——断网、超时、应用被杀都无损；
+- **实体级 LWW**：以 `(updatedAt, deviceId)` 裁决，双端对任意交错顺序收敛到同一状态；
+  时钟超前服务器 2 分钟以上会被钳制（防漂移设备霸权）；
+- **单调游标**：服务端为每用户分配单调 seq，客户端只拉增量；cursor 丢失从 0 重拉自愈；
+- **墓碑删除**：删除以墓碑实体跨端传播；
+- **首登两阶段**：云端有数据则整体采用（种子不反噬），为空才推种子。
 
-请求头任选其一：`Authorization: Bearer <key>` 或 `X-Access-Key: <key>`。
+完整设计（边界场景对照表、部署运维）见 [docs/sync-design.md](./docs/sync-design.md)。
 
 ### 部署 Worker
 
-前置：已安装 [Wrangler](https://developers.cloudflare.com/workers/wrangler/)，并 `wrangler login`（或设置 `CLOUDFLARE_API_TOKEN`）。
+前置：安装 [Wrangler](https://developers.cloudflare.com/workers/wrangler/) 并 `wrangler login`。
 
 ```bash
-cd worker
-npm install
+cd worker && npm install
 
-# 若尚未创建 D1（只需一次）
-npx wrangler d1 create dida-clone-db
-# 把返回的 database_id 写入 wrangler.toml
-
-# 建表
+# 建表（一次；schema 与 v1 不兼容，旧 app_state 表会被清除）
 npx wrangler d1 execute dida-clone-db --remote --file=schema.sql
 
-# 部署
-npx wrangler deploy
+# 密钥（勿提交 Git）
+npx wrangler secret put BETTER_AUTH_SECRET    # 强随机串：openssl rand -base64 32
+npx wrangler secret put ADMIN_EMAIL           # 该邮箱注册即管理员
 
-# 设置 Access Key（强随机，勿提交到 Git）
-openssl rand -base64 32
-printf '%s' '你的密钥' | npx wrangler secret put ACCESS_KEY
+# 构建后台 SPA 并部署（wrangler.toml [assets] 托管在 /admin 路径）
+npm run deploy
 ```
 
-部署后地址形如：`https://dida-clone-sync.<subdomain>.workers.dev`。
+如需关闭开放注册：`wrangler.toml` 的 `[vars]` 里加 `DISABLE_SIGNUPS = "true"`。
 
-本地凭据可写在仓库根目录 `.sync-credentials.local`（已 gitignore）：
+### 多端登录
 
-```
-WORKER_URL=https://dida-clone-sync.xxx.workers.dev
-ACCESS_KEY=...
-```
-
-### 在设置页填写
-
-1. 打开应用 → 侧栏 **设置**
-2. **Sync API Base URL**：Worker 根地址（不要带尾斜杠路径以外的内容；填到 `.workers.dev` 即可）
-3. **Access Key**：与 `wrangler secret put ACCESS_KEY` 相同
-4. **保存配置** → **测试连接** → **立即同步**
-
-行为：
-
-- 启动后若已配置：自动拉取
-- 本地变更后约 2 秒 debounce 上传
-- 冲突时提示选择「用云端」或「强制上传本地」
+- Web：访问部署地址，注册/登录即可；
+- 安卓 App：登录页「高级选项」可改服务地址（默认连内置的线上 Worker；
+  自托管构建时用 `VITE_API_BASE_URL` 环境变量写入自己的地址）；
+- 后台管理：浏览器访问 `https://<worker-domain>/admin/`，用 ADMIN_EMAIL 账号登录。
 
 ### 手动测 API
 
 ```bash
 BASE=https://dida-clone-sync.xxx.workers.dev
-KEY=你的密钥
 
 curl -s "$BASE/api/health"
-curl -s -H "Authorization: Bearer $KEY" "$BASE/api/state"
-curl -s -X PUT -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-  -d '{"revision":0,"state":{"lists":[],"tags":[],"tasks":[],"sessions":[],"theme":"light"}}' \
-  "$BASE/api/state"
+# 注册（响应头 set-auth-token 即会话令牌）
+curl -s -D- -o /dev/null -X POST "$BASE/api/auth/sign-up/email" \
+  -H 'Content-Type: application/json' -H 'Origin: https://example.com' \
+  -d '{"email":"you@example.com","password":"password123","name":"you"}'
+# 同步（Bearer 令牌；实体全量上送 + cursor 增量拉取）
+curl -s -X POST "$BASE/api/sync" -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"deviceId":"dev1","cursor":0,"entities":{"tasks":[],"lists":[],"tags":[],"settings":[]}}'
 ```
 
 ## 技术栈
@@ -112,7 +102,7 @@ curl -s -X PUT -H "Authorization: Bearer $KEY" -H "Content-Type: application/jso
 | 框架 | Vite + React + TypeScript |
 | 样式 | Tailwind CSS v4 |
 | 状态 / 持久化 | Zustand (+ persist) |
-| 云同步 | Cloudflare Worker (Hono) + D1 |
+| 账户 / 云同步 | better-auth + Cloudflare Worker (Hono) + D1（实体级 LWW） |
 | 安卓壳 | Capacitor 8 + GitHub Actions (assembleRelease) |
 | 日期 | dayjs + chrono-node |
 | 拖拽 | @dnd-kit |
@@ -125,6 +115,16 @@ curl -s -X PUT -H "Authorization: Bearer $KEY" -H "Content-Type: application/jso
 ### P0 / P1
 
 见此前清单：智能清单、任务详情（桌面侧栏 / 移动端底部抽屉，双档吸顶）、识日期、提醒、标签/检查项、日历月视图、看板、四象限、搜索过滤、深浅色、垃圾桶（侧栏可直达）、撤销 Toast 等。
+
+### v0.12 优化：账户体系 + 云同步重做（breaking）
+
+- **用户体系**：引入 better-auth——注册只需**邮箱 + 密码**（用户名自动派生），Bearer 令牌鉴权，Web / 安卓壳 / curl 通吃；30 天滑动会话、修改密码、登录设备管理、远程注销、账号注销、数据导出一应俱全。
+- **同步协议 v2（实体级 LWW + 单调游标）**：替代旧「整包 JSON + revision 乐观锁」。状态基全量上送（幂等，断网/被杀无损）+ 实体级 `(updatedAt, deviceId)` 裁决（双端任意交错收敛一致）+ 时钟漂移钳制 + 墓碑删除 + 单调 seq 增量拉取（cursor 丢失自愈）；冲突**静默收敛**，不再需要手动选「用云端 / 强制上传」。完整设计见 docs/sync-design.md。
+- **后台管理 SaaS**（`admin/`，独立浅色 SPA，构建后由 Worker 托管在 `/admin`）：总览（用户/任务/会话/近 7 天同步曲线）、用户管理（搜索/封禁/解封/删除）、日志（同步流水 + 审计，保留 90 天）、墓碑清理维护。管理员由 `ADMIN_EMAIL` secret 指定，支持 `DISABLE_SIGNUPS` 关闭注册。
+- **设置页改造**：原「云同步」（URL + Access Key + 冲突处理）整节移除，改为「账户 / 数据 / 安全」——同步状态与手动同步、服务地址（高级）、导出 JSON、修改密码、登录设备、退出登录、注销账号。
+- **登录页**：全新登录/注册双 Tab 页（未登录自动呈现），注册仅需邮箱 + 密码。
+- **worker schema 重写**：`app_state` 整包表移除，新增 better-auth 四表 + entity/data_seq/sync_log/audit_log；API 全部经 Bearer 会话鉴权。
+- e2e 改造：断言套件自动注册测试账号并注入登录态（`npm run e2e` 一键拉起 wrangler dev + preview 跑完回收）；新增 `scripts/auth-flow-check.mjs` 账户/同步浏览器冒烟（注册→首同步→跨端编辑→采纳→登出）。
 
 ### v0.11 优化
 
@@ -220,14 +220,16 @@ git tag -a v0.1.0 -m "v0.1.0" && git push origin v0.1.0
 
 #### App 内云同步
 
-安装后打开 App → **设置**，填入与 Web 相同的 Sync API Base URL + Access Key，即可与浏览器/其他设备同步（API 为 HTTPS `workers.dev`）。
+安装后打开 App，用同一账号**登录**即可与浏览器/其他设备同步（服务地址默认内置；
+自托管时在登录页「高级选项」填写自己的 Worker 地址）。设置页支持改密、设备管理与导出。
 
 ## 目录结构
 
 ```
 src/           # 前端
 android/       # Capacitor Android 工程（提交到 Git，供 CI）
-worker/        # Cloudflare Worker + D1 schema
+worker/        # Cloudflare Worker：better-auth + 实体级同步 + admin API
+admin/         # 后台管理 SaaS（独立 Vite 应用，构建后由 Worker 托管在 /admin）
 scripts/       # e2e-check.mjs：puppeteer 自动化验证（55 项断言）
 .github/workflows/android.yml  # 打 release APK / Release（手动触发）
 screenshots/   # 界面截图
@@ -243,6 +245,6 @@ AGENTS.md      # AI agent / 维护者协作规范（发版清单、已知陷阱�
 - 检查项不支持拖拽排序（子任务支持）。
 - 重复任务的下次实例不携带子任务（检查项会重置）。
 - 移动端详情抽屉内删除检查项 / 子任务需点入该项详情后从菜单删除（桌面为悬停删除）。
-- 云同步为整包状态 + revision，非细粒度 CRDT；冲突需手动选云端或强制上传。
-- Access Key 存 localStorage，勿在公共电脑长期登录。
+- 同步为实体级 LWW：并发编辑同一实体的不同字段时整条以较新一方为准（不做字段级合并），详见 docs/sync-design.md。
+- 会话令牌存 localStorage，公共电脑用完请退出登录。
 - 安卓为自签 release；更新请始终用同一 keystore。未专门适配 Google Play 上架流程。

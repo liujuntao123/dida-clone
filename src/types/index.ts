@@ -2,7 +2,6 @@ export type Priority = 0 | 1 | 2 | 3 // 0=无 1=低 2=中 3=高
 export type TaskStatus = 'todo' | 'done' | 'abandoned' | 'trashed'
 export type ViewMode = 'list' | 'board' | 'calendar' | 'quadrant'
 export type SortBy = 'due' | 'priority' | 'created' | 'custom'
-export type BoardGroupBy = 'priority' | 'status'
 export type CalendarMode = 'month' | 'week'
 export type ThemeMode = 'light' | 'dark'
 
@@ -44,21 +43,17 @@ export interface TaskList {
   color: string
   isInbox?: boolean
   order: number
+  /** 云同步用：该实体最后一次修改的逻辑时间（墓碑实体仅含 id/updatedAt/deleted） */
+  updatedAt?: string
+  deleted?: boolean
 }
 
 export interface Tag {
   id: string
   name: string
   color: string
-}
-
-/** Kept for Cloudflare sync payload compatibility; frontend no longer uses sessions. */
-export interface PomodoroSession {
-  id: string
-  taskId?: string | null
-  startedAt: string
-  durationSec: number
-  completed: boolean
+  updatedAt?: string
+  deleted?: boolean
 }
 
 export type SmartListId =

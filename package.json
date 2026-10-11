@@ -1,7 +1,7 @@
 {
   "name": "dida-clone",
   "private": true,
-  "version": "0.11.5",
+  "version": "0.12.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "cap:sync": "npx cap sync",
     "build:android": "npm run build && npx cap sync android",
-    "cap:open:android": "npx cap open android"
+    "cap:open:android": "npx cap open android",
+    "e2e": "node scripts/run-e2e.mjs",
+    "auth-check": "node scripts/auth-flow-check.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.2",

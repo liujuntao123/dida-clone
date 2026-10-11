@@ -11,9 +11,12 @@
  * 用法：先 `npm run build`，再 `npm run preview -- --port 4173`，然后 `node scripts/e2e-check.mjs`
  */
 import puppeteer from 'puppeteer-core'
+import { execFileSync } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
 
 const BASE = process.env.E2E_BASE ?? 'http://127.0.0.1:4173/'
+// 注册引导直连后端端口（绕开 preview 代理这一不稳定环节；令牌与来源无关）
+const API = process.env.E2E_API ?? 'http://127.0.0.1:3000'
 const SHOT_DIR = 'screenshots/e2e'
 mkdirSync(SHOT_DIR, { recursive: true })
 
@@ -75,6 +78,67 @@ function watchErrors(page, bucket) {
   })
 }
 
+// ---------------------------------------------------------------- auth bootstrap
+/** 经应用同源代理注册一次性测试账号，返回 bearer 令牌（服务端 set-auth-token 下发） */
+async function registerTestAccount(tag) {
+  let lastErr = null
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const email = `e2e-${tag}-${Date.now()}-${attempt}@test.dev`
+    try {
+      // 同 run-e2e：用 curl 走首次注册，绕开 Node fetch 首请求挂起问题
+      const res = execFileSync(
+        'curl',
+        [
+          '-s',
+          '-m', '20',
+          '-D', '-',
+          '-o', '/dev/null',
+          '-X', 'POST',
+          new URL('api/auth/sign-up/email', API).toString(),
+          '-H', 'Content-Type: application/json',
+          '-H', 'Origin: http://localhost:5173',
+          '-d', JSON.stringify({ email, password: 'password123', name: 'e2e' }),
+        ],
+        { timeout: 25_000 },
+      ).toString()
+      const status = Number(res.match(/\s(\d{3})\s/)?.[1] ?? 0)
+      if (status !== 200) throw new Error(`注册接口 ${status}`)
+      const token = res.match(/^set-auth-token:\s*(\S+)/im)?.[1]
+      if (!token) throw new Error('注册响应缺少 set-auth-token')
+      return token
+    } catch (e) {
+      lastErr = e
+      console.log(`  ⚠️ 注册引导第 ${attempt} 次失败：${String(e.message).split('\n')[0]}`)
+      await sleep(1500)
+    }
+  }
+  throw new Error(`测试账号注册失败：${lastErr?.message}`)
+}
+
+/** 在应用脚本运行前注入登录令牌，并保证本地数据从全新种子开始 */
+function injectSession(page, token) {
+  void page.evaluateOnNewDocument((t) => {
+    localStorage.clear()
+    localStorage.setItem('dida-session-token', t)
+  }, token)
+}
+
+/** 等待首同步完成（云端为空 → 种子推送 → 游标推进） */
+async function waitFirstSync(page, timeoutMs = 20000) {
+  const start = Date.now()
+  while (Date.now() - start < timeoutMs) {
+    const done = await page.evaluate(() => {
+      const raw = localStorage.getItem('dida-account-meta')
+      if (!raw) return false
+      const meta = JSON.parse(raw)
+      return meta.initDone === true && meta.cursor > 0
+    })
+    if (done) return true
+    await sleep(300)
+  }
+  return false
+}
+
 // ---------------------------------------------------------------- mobile
 async function mobileSuite(browser) {
   console.log('\n——— 移动端（390×844 touch）———')
@@ -82,8 +146,11 @@ async function mobileSuite(browser) {
   const errors = []
   watchErrors(page, errors)
   await page.setViewport({ width: 390, height: 844, hasTouch: true, isMobile: true, deviceScaleFactor: 2 })
+  const token = await registerTestAccount('m')
+  injectSession(page, token)
   await page.goto(BASE, { waitUntil: 'networkidle0' })
   await page.waitForSelector('h1')
+  ok(await waitFirstSync(page), '登录后首同步完成（云端为空 → 种子推送）')
   await sleep(400)
 
   const drawerPanel = () =>
@@ -466,11 +533,11 @@ async function desktopSuite(browser) {
   const errors = []
   watchErrors(page, errors)
   await page.setViewport({ width: 1280, height: 800 })
-  await page.goto(BASE, { waitUntil: 'networkidle0' })
-  // 与移动端共用同一浏览器 profile —— 先清空 localStorage 得到全新种子数据
-  await page.evaluate(() => localStorage.clear())
+  const dToken = await registerTestAccount('d')
+  injectSession(page, dToken)
   await page.goto(BASE, { waitUntil: 'networkidle0' })
   await page.waitForSelector('h1')
+  ok(await waitFirstSync(page), '桌面端登录后首同步完成')
   await sleep(400)
 
   // 1. 侧栏含「明天」智能清单

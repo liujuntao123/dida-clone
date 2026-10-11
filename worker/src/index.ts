@@ -1,170 +1,69 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+import { getAuth } from './auth'
+import { adminApp } from './admin'
+import { syncApp } from './sync'
+import type { SyncHono } from './env'
 
-type Bindings = {
-  DB: D1Database
-  ACCESS_KEY: string
-}
+const app: SyncHono = new Hono()
 
-type StateRow = {
-  id: number
-  payload: string
-  updated_at: string
-  revision: number
-}
-
-const app = new Hono<{ Bindings: Bindings }>()
+// ---------------------------------------------------------------------------
+// CORS：bearer 令牌鉴权（无 cookie），但 Capacitor 壳与本地 dev 是跨源 fetch
+// ---------------------------------------------------------------------------
+const CORS_ORIGINS = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:4173',
+  'http://127.0.0.1:4173',
+  'https://localhost',
+  'http://localhost',
+  'capacitor://localhost',
+  'ionic://localhost',
+]
 
 app.use(
   '*',
   cors({
-    origin: '*',
-    allowMethods: ['GET', 'PUT', 'POST', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization', 'X-Access-Key'],
+    origin: (origin, c) => {
+      if (!origin) return null
+      if (origin === c.env.APP_URL || CORS_ORIGINS.includes(origin)) return origin
+      return null
+    },
+    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    exposeHeaders: ['set-auth-token'],
     maxAge: 86400,
   }),
 )
 
-function extractKey(c: { req: { header: (name: string) => string | undefined } }): string | null {
-  const auth = c.req.header('Authorization')
-  if (auth?.startsWith('Bearer ')) return auth.slice(7).trim()
-  const xKey = c.req.header('X-Access-Key')
-  if (xKey) return xKey.trim()
-  return null
-}
-
-function requireAuth(c: {
-  env: Bindings
-  req: { header: (name: string) => string | undefined }
-}): Response | null {
-  const expected = c.env.ACCESS_KEY
-  if (!expected) {
-    return new Response(JSON.stringify({ error: 'ACCESS_KEY not configured on server' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    })
-  }
-  const key = extractKey(c)
-  if (!key || key !== expected) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    })
-  }
-  return null
-}
-
-async function readState(db: D1Database): Promise<StateRow | null> {
-  return db.prepare('SELECT id, payload, updated_at, revision FROM app_state WHERE id = 1').first<StateRow>()
-}
-
-function rowToResponse(row: StateRow | null) {
-  if (!row) {
-    return { revision: 0, updatedAt: null, state: null }
-  }
-  let state: unknown = null
-  try {
-    state = JSON.parse(row.payload)
-  } catch {
-    state = null
-  }
-  return { revision: row.revision, updatedAt: row.updated_at, state }
-}
-
-app.get('/api/health', (c) => c.json({ ok: true, service: 'dida-clone-sync' }))
-
-app.get('/api/state', async (c) => {
-  const denied = requireAuth(c)
-  if (denied) return denied
-  const row = await readState(c.env.DB)
-  return c.json(rowToResponse(row))
+// 每个 isolate 缓存一个 better-auth 实例，注入 Hono 变量供子路由使用
+app.use('/api/*', async (c, next) => {
+  c.set('auth', getAuth(c.env))
+  await next()
+})
+app.use('/admin/api/*', async (c, next) => {
+  c.set('auth', getAuth(c.env))
+  await next()
 })
 
-app.put('/api/state', async (c) => {
-  const denied = requireAuth(c)
-  if (denied) return denied
+// ---------------------------------------------------------------------------
+// 路由
+// ---------------------------------------------------------------------------
 
-  let body: { revision?: number; state?: unknown }
-  try {
-    body = await c.req.json()
-  } catch {
-    return c.json({ error: 'Invalid JSON body' }, 400)
-  }
+app.get('/api/health', (c) =>
+  c.json({ ok: true, service: 'dida-clone-sync', protocol: 2, time: new Date().toISOString() }),
+)
 
-  if (body.state === undefined) {
-    return c.json({ error: 'Missing state' }, 400)
-  }
+// better-auth：/api/auth/sign-up/email、/sign-in/email、/sign-out、/change-password、
+// /list-sessions、/revoke-session、/get-session 以及 admin 插件的 /admin/* 端点
+app.on(['POST', 'GET'], '/api/auth/*', (c) => getAuth(c.env).handler(c.req.raw))
 
-  const current = await readState(c.env.DB)
-  const clientRevision = body.revision
+app.route('/api', syncApp) // POST /api/sync · GET /api/export · DELETE /api/account
+app.route('/admin/api', adminApp)
 
-  if (
-    current &&
-    typeof clientRevision === 'number' &&
-    clientRevision < current.revision
-  ) {
-    return c.json(
-      {
-        error: 'Conflict',
-        message: 'Client revision is behind server',
-        ...rowToResponse(current),
-      },
-      409,
-    )
-  }
+app.all('/api/*', (c) => c.json({ error: 'Not found' }, 404))
+app.all('/admin/api/*', (c) => c.json({ error: 'Not found' }, 404))
 
-  const nextRevision = (current?.revision ?? 0) + 1
-  const updatedAt = new Date().toISOString()
-  const payload = JSON.stringify(body.state)
-
-  await c.env.DB.prepare(
-    `INSERT INTO app_state (id, payload, updated_at, revision)
-     VALUES (1, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET
-       payload = excluded.payload,
-       updated_at = excluded.updated_at,
-       revision = excluded.revision`,
-  )
-    .bind(payload, updatedAt, nextRevision)
-    .run()
-
-  return c.json({ revision: nextRevision, updatedAt, state: body.state })
-})
-
-app.post('/api/state/force', async (c) => {
-  const denied = requireAuth(c)
-  if (denied) return denied
-
-  let body: { state?: unknown }
-  try {
-    body = await c.req.json()
-  } catch {
-    return c.json({ error: 'Invalid JSON body' }, 400)
-  }
-
-  if (body.state === undefined) {
-    return c.json({ error: 'Missing state' }, 400)
-  }
-
-  const current = await readState(c.env.DB)
-  const nextRevision = (current?.revision ?? 0) + 1
-  const updatedAt = new Date().toISOString()
-  const payload = JSON.stringify(body.state)
-
-  await c.env.DB.prepare(
-    `INSERT INTO app_state (id, payload, updated_at, revision)
-     VALUES (1, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET
-       payload = excluded.payload,
-       updated_at = excluded.updated_at,
-       revision = excluded.revision`,
-  )
-    .bind(payload, updatedAt, nextRevision)
-    .run()
-
-  return c.json({ revision: nextRevision, updatedAt, state: body.state })
-})
-
-app.all('*', (c) => c.json({ error: 'Not found' }, 404))
+app.notFound((c) => c.json({ error: 'Not found' }, 404))
 
 export default app

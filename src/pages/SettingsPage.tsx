@@ -1,39 +1,31 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import {
-  AlertTriangle,
   Bell,
   Check,
   ChevronDown,
   Cloud,
   Download,
-  Eye,
-  EyeOff,
   Info,
   Loader2,
+  LogOut,
+  MonitorSmartphone,
   Palette,
-  Upload,
+  Server,
+  ShieldCheck,
+  Trash2,
+  UserRound,
 } from 'lucide-react'
 import { cn } from '../lib/cn'
 import { useAppStore } from '../store/useAppStore'
 import { useToastStore } from '../store/useToastStore'
+import { useSessionStore } from '../store/useSessionStore'
 import { ensureNotificationPermission } from '../lib/reminders'
 import { PageHeader } from '../components/common/PageHeader'
-import { loadSyncConfig, saveSyncConfig, isSyncConfigured } from '../lib/syncConfig'
-import {
-  subscribeSyncStatus,
-  getSyncStatus,
-  healthCheck,
-  type SyncStatus,
-} from '../lib/sync'
-import {
-  doPull,
-  doPush,
-  doForcePush,
-  doFullSync,
-  applyRemoteOverwrite,
-  SyncConflictError,
-} from '../lib/syncBridge'
-import type { SyncableState } from '../lib/sync'
+import { authApi, authErrorMessage, loadToken } from '../lib/auth'
+import { handleAuthExpired, signOut } from '../lib/session'
+import { getApiBase, getApiBaseOverride, isUsingOverride, setApiBaseOverride } from '../lib/config'
+import { loadMeta } from '../lib/account'
+import { getSyncStatus, runSync, subscribeSyncStatus, type SyncStatus } from '../lib/cloudSync'
 import dayjs from 'dayjs'
 import type { ThemeMode } from '../types'
 
@@ -105,9 +97,9 @@ function StatusDot({ status }: { status: SyncStatus }) {
       ? '#34c759'
       : status.kind === 'syncing'
         ? 'var(--color-brand)'
-        : status.kind === 'error'
+        : status.kind === 'offline'
           ? '#ee5252'
-          : status.kind === 'conflict'
+          : status.kind === 'auth-expired'
             ? '#f5a623'
             : 'var(--color-muted)'
   return (
@@ -125,14 +117,32 @@ function statusTextOf(status: SyncStatus): string {
     case 'idle':
       return '空闲'
     case 'syncing':
-      return status.action === 'pull' ? '拉取中…' : status.action === 'force' ? '强制上传中…' : '上传中…'
+      return '同步中…'
     case 'ok':
-      return `已同步 · rev ${status.revision}`
-    case 'conflict':
-      return '有冲突待处理'
-    case 'error':
-      return `出错：${status.message}`
+      return '已同步'
+    case 'offline':
+      return status.retryingAt ? `离线 · ${dayjs(status.retryingAt).format('HH:mm')} 自动重试` : '离线'
+    case 'auth-expired':
+      return '登录已过期'
   }
+}
+
+type SessionInfo = {
+  token: string
+  createdAt: string
+  expiresAt: string
+  ipAddress?: string | null
+  userAgent?: string | null
+}
+
+function deviceLabel(ua: string | null): string {
+  if (!ua) return '未知设备'
+  if (/Android/i.test(ua)) return /DidA|Capacitor/i.test(ua) ? 'Android App' : 'Android 浏览器'
+  if (/iPhone|iPad|iOS/i.test(ua)) return 'iOS'
+  if (/Macintosh/i.test(ua)) return 'Mac 浏览器'
+  if (/Windows/i.test(ua)) return 'Windows 浏览器'
+  if (/Linux/i.test(ua)) return 'Linux 浏览器'
+  return '浏览器'
 }
 
 /* ---------- 设置页 ---------- */
@@ -144,79 +154,58 @@ export function SettingsPage() {
   const lastListView = useAppStore((s) => s.lastListView)
   const goBack = () => setActiveView(lastListView)
   const showToast = useToastStore((s) => s.show)
+  const user = useSessionStore((s) => s.user)
 
   // —— 通知权限 ——
   const [notif, setNotif] = useState<NotificationPermission | 'unsupported'>('default')
 
   // —— 同步 ——
-  const [apiBaseUrl, setApiBaseUrl] = useState('')
-  const [accessKey, setAccessKey] = useState('')
-  const [showKey, setShowKey] = useState(false)
-  const [revision, setRevision] = useState(0)
-  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null)
   const [status, setStatus] = useState<SyncStatus>(getSyncStatus())
-  const [busy, setBusy] = useState<'sync' | 'pull' | 'push' | 'force' | 'test' | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
-  const [advanced, setAdvanced] = useState(false)
-  const [conflict, setConflict] = useState<{
-    remote: { revision: number; state: SyncableState | null }
-  } | null>(null)
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(
+    () => (user ? loadMeta(user.id).lastSyncedAt : null),
+  )
+  const [cursor, setCursor] = useState(() => (user ? loadMeta(user.id).cursor : 0))
+  const [syncBusy, setSyncBusy] = useState(false)
+  const [serverUrl, setServerUrl] = useState(getApiBaseOverride())
+  const [serverSaved, setServerSaved] = useState(false)
+
+  // —— 安全 ——
+  const [pwOpen, setPwOpen] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [pwBusy, setPwBusy] = useState(false)
+  const [pwMessage, setPwMessage] = useState<string | null>(null)
+  const [sessions, setSessions] = useState<SessionInfo[] | null>(null)
+  const [sessionsOpen, setSessionsOpen] = useState(false)
+  const [revoking, setRevoking] = useState<string | null>(null)
 
   useEffect(() => {
     setNotif('Notification' in window ? Notification.permission : 'unsupported')
-    const cfg = loadSyncConfig()
-    setApiBaseUrl(cfg.apiBaseUrl)
-    setAccessKey(cfg.accessKey)
-    setRevision(cfg.revision)
-    setLastSyncedAt(cfg.lastSyncedAt)
     return subscribeSyncStatus((s) => {
       setStatus(s)
-      const latest = loadSyncConfig()
-      setRevision(latest.revision)
-      setLastSyncedAt(latest.lastSyncedAt)
+      const meta = user ? loadMeta(user.id) : null
+      setLastSyncedAt(meta?.lastSyncedAt ?? null)
+      setCursor(meta?.cursor ?? 0)
     })
-  }, [])
+  }, [user])
 
-  /** 失焦时若配置有变化则落盘 */
-  const persistConfigIfChanged = () => {
-    const cfg = loadSyncConfig()
-    if (cfg.apiBaseUrl === apiBaseUrl.trim() && cfg.accessKey === accessKey.trim()) return
-    saveSyncConfig({ apiBaseUrl: apiBaseUrl.trim(), accessKey: accessKey.trim() })
-    showToast('同步配置已保存')
-  }
-
-  const run = async (kind: 'sync' | 'pull' | 'push' | 'force', fn: () => Promise<void>, okMsg: string) => {
-    setBusy(kind)
-    setMessage(null)
-    setConflict(null)
+  const doSync = async () => {
+    setSyncBusy(true)
     try {
-      saveSyncConfig({ apiBaseUrl: apiBaseUrl.trim(), accessKey: accessKey.trim() })
-      await fn()
-      const cfg = loadSyncConfig()
-      setRevision(cfg.revision)
-      setLastSyncedAt(cfg.lastSyncedAt)
-      setMessage(okMsg)
-    } catch (e) {
-      if (e instanceof SyncConflictError) {
-        setConflict({
-          remote: { revision: e.remote.revision, state: e.remote.state as SyncableState | null },
-        })
-        setMessage('云端版本较新，请选择处理方式')
-      } else {
-        setMessage(e instanceof Error ? e.message : String(e))
-      }
+      await runSync()
+      showToast('同步完成')
+    } catch {
+      showToast('同步失败，将自动重试')
     } finally {
-      setBusy(null)
+      setSyncBusy(false)
     }
   }
 
-  const testConnection = async () => {
-    setBusy('test')
-    setMessage(null)
-    saveSyncConfig({ apiBaseUrl: apiBaseUrl.trim(), accessKey: accessKey.trim() })
-    const ok = await healthCheck(apiBaseUrl.trim())
-    setMessage(ok ? '连接成功' : '无法连接，请检查地址')
-    setBusy(null)
+  const saveServerUrl = () => {
+    setApiBaseOverride(serverUrl)
+    setServerSaved(true)
+    showToast('服务地址已保存，重新登录后生效')
+    setTimeout(() => setServerSaved(false), 1500)
   }
 
   const requestNotif = async () => {
@@ -238,12 +227,171 @@ export function SettingsPage() {
     }
   })()
 
-  const configured = isSyncConfigured({ ...loadSyncConfig(), apiBaseUrl, accessKey })
+  /* —— 数据导出 —— */
+  const exportData = () => {
+    const s = useAppStore.getState()
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      account: user?.email ?? null,
+      tasks: s.tasks,
+      lists: s.lists,
+      tags: s.tags,
+      prefs: { theme: s.theme, sortBy: s.sortBy, calendarMode: s.calendarMode },
+    }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `dida-export-${dayjs().format('YYYYMMDD-HHmm')}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    showToast('已导出 JSON 文件')
+  }
+
+  /* —— 修改密码 —— */
+  const changePassword = async () => {
+    if (pwBusy) return
+    if (newPassword.length < 8) {
+      setPwMessage('新密码至少 8 位')
+      return
+    }
+    setPwBusy(true)
+    setPwMessage(null)
+    try {
+      await authApi.changePassword({
+        currentPassword,
+        newPassword,
+        revokeOtherSessions: true,
+      })
+      setPwOpen(false)
+      setCurrentPassword('')
+      setNewPassword('')
+      showToast('密码已修改，其他设备已退出')
+    } catch (err) {
+      const e = err as { status?: number; code?: string }
+      setPwMessage(e?.status === 401 ? '当前密码不正确' : authErrorMessage(err))
+    } finally {
+      setPwBusy(false)
+    }
+  }
+
+  /* —— 会话管理 —— */
+  const loadSessions = async () => {
+    try {
+      setSessions(await authApi.listSessions())
+    } catch (err) {
+      showToast(authErrorMessage(err))
+    }
+  }
+
+  const revokeSession = async (token: string) => {
+    setRevoking(token)
+    try {
+      await authApi.revokeSession({ token })
+      await loadSessions()
+      showToast('已退出该设备')
+    } catch (err) {
+      showToast(authErrorMessage(err))
+    } finally {
+      setRevoking(null)
+    }
+  }
+
+  /* —— 注销账号 —— */
+  const deleteAccount = async () => {
+    if (!window.confirm('注销账号将永久删除云端全部数据（任务 / 清单 / 标签 / 会话），且无法恢复。确定继续？')) return
+    if (!window.confirm('再次确认：真的要注销吗？')) return
+    try {
+      const token = loadToken()
+      const res = await fetch(`${getApiBase()}/api/account`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.status === 401) {
+        handleAuthExpired()
+        return
+      }
+      if (!res.ok) throw new Error(`删除失败 (${res.status})`)
+      await signOut()
+      showToast('账号已注销')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '注销失败，请稍后再试')
+    }
+  }
+
+  const toggleSessions = () => {
+    const next = !sessionsOpen
+    setSessionsOpen(next)
+    if (next) void loadSessions()
+  }
 
   return (
     <div className="flex h-full min-w-0 flex-1 flex-col bg-[var(--color-surface-2)]">
       <PageHeader title="设置" onBack={goBack} />
       <div className="mx-auto w-full max-w-2xl flex-1 overflow-y-auto px-4 pb-12 pt-1">
+        {/* 账户 */}
+        <Section title="账户" icon={<UserRound size={14} strokeWidth={1.75} />}>
+          <Row
+            icon={<UserRound size={18} strokeWidth={1.75} />}
+            title={user?.email ?? '未登录'}
+            subtitle={
+              user?.role === 'admin' ? '管理员' : undefined
+            }
+          />
+          <Row
+            divider
+            icon={<Cloud size={18} strokeWidth={1.75} />}
+            title={
+              <span className="flex items-center gap-2">
+                <StatusDot status={status} />
+                <span className={cn(status.kind === 'offline' && 'text-red-500')}>{statusTextOf(status)}</span>
+              </span>
+            }
+            subtitle={
+              lastSyncedAt
+                ? `最近同步 ${dayjs(lastSyncedAt).format('M月D日 HH:mm')} · 版本 ${cursor}`
+                : '尚未同步'
+            }
+            right={
+              <button
+                type="button"
+                disabled={syncBusy}
+                className="btn-primary min-h-9 px-3.5 text-xs disabled:opacity-50"
+                onClick={() => void doSync()}
+              >
+                {syncBusy ? <Loader2 size={14} className="animate-spin" /> : '立即同步'}
+              </button>
+            }
+          />
+          <Row
+            divider
+            icon={<Server size={18} strokeWidth={1.75} />}
+            title="服务地址"
+            right={
+              serverSaved ? (
+                <span className="flex items-center gap-1 text-xs text-emerald-500">
+                  <Check size={14} strokeWidth={2.5} /> 已保存
+                </span>
+              ) : isUsingOverride() ? (
+                <span className="text-xs text-[var(--color-muted)]">自定义</span>
+              ) : undefined
+            }
+          />
+          <div className="px-4 pb-3">
+            <input
+              type="url"
+              value={serverUrl}
+              onChange={(e) => setServerUrl(e.target.value)}
+              onBlur={saveServerUrl}
+              placeholder="https://dida-clone-sync.xxx.workers.dev（留空用默认）"
+              className="field-focus w-full rounded-xl bg-[var(--color-surface-2)] px-3 py-2.5 text-xs outline-none placeholder:text-[var(--color-muted)]/60"
+            />
+            <p className="mt-1 text-[11px] leading-relaxed text-[var(--color-muted)]/80">
+              修改后需退出登录再重新登录。当前使用：{getApiBase() || '同源服务'}
+            </p>
+          </div>
+        </Section>
+
         {/* 外观 */}
         <Section title="外观" icon={<Palette size={14} strokeWidth={1.75} />}>
           <div className="flex items-center gap-4 px-4 py-3">
@@ -302,189 +450,124 @@ export function SettingsPage() {
           />
         </Section>
 
-        {/* 云同步 */}
-        <Section title="云同步" icon={<Cloud size={14} strokeWidth={1.75} />}>
-          <div className="px-4 pb-1 pt-3 text-xs leading-relaxed text-[var(--color-muted)]">
-            单用户 self-host：在 Cloudflare Worker 设置 ACCESS_KEY，填入下方地址与密钥即可多端同步。
-            密钥仅保存在本机。
-          </div>
-          <div className="relative px-4 py-2.5">
-            <span className="row-divider-line absolute inset-x-4 top-0" />
-            <label className="block">
-              <span className="mb-1 block text-xs text-[var(--color-muted)]">服务地址</span>
+        {/* 数据 */}
+        <Section title="数据" icon={<Download size={14} strokeWidth={1.75} />}>
+          <Row
+            icon={<Download size={18} strokeWidth={1.75} />}
+            title="导出数据"
+            subtitle="下载全部任务的 JSON 文件"
+            onClick={exportData}
+          />
+        </Section>
+
+        {/* 安全 */}
+        <Section title="安全" icon={<ShieldCheck size={14} strokeWidth={1.75} />}>
+          <Row
+            divider
+            icon={<ShieldCheck size={18} strokeWidth={1.75} />}
+            title="修改密码"
+            subtitle="修改后其他设备将被退出"
+            onClick={() => {
+              setPwOpen((v) => !v)
+              setPwMessage(null)
+            }}
+            right={
+              <ChevronDown
+                size={16}
+                strokeWidth={2}
+                className={cn('text-[var(--color-muted)] transition', !pwOpen && '-rotate-90')}
+              />
+            }
+          />
+          {pwOpen && (
+            <div className="animate-fade-in space-y-2 px-4 pb-3">
               <input
-                type="url"
-                value={apiBaseUrl}
-                onChange={(e) => setApiBaseUrl(e.target.value)}
-                onBlur={persistConfigIfChanged}
-                placeholder="https://dida-clone-sync.xxx.workers.dev"
+                type="password"
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="当前密码"
                 className="field-focus w-full rounded-xl bg-[var(--color-surface-2)] px-3 py-2.5 text-sm outline-none placeholder:text-[var(--color-muted)]/60"
               />
-            </label>
-          </div>
-          <div className="relative px-4 py-2.5">
-            <span className="row-divider-line absolute inset-x-4 top-0" />
-            <label className="block">
-              <span className="mb-1 block text-xs text-[var(--color-muted)]">访问密钥</span>
-              <span className="relative block">
-                <input
-                  type={showKey ? 'text' : 'password'}
-                  value={accessKey}
-                  onChange={(e) => setAccessKey(e.target.value)}
-                  onBlur={persistConfigIfChanged}
-                  placeholder="与 Worker 的 ACCESS_KEY 一致"
-                  autoComplete="off"
-                  className="field-focus w-full rounded-xl bg-[var(--color-surface-2)] px-3 py-2.5 pr-11 text-sm outline-none placeholder:text-[var(--color-muted)]/60"
-                />
-                <button
-                  type="button"
-                  aria-label={showKey ? '隐藏密钥' : '显示密钥'}
-                  onClick={() => setShowKey((v) => !v)}
-                  className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[var(--color-muted)] active:opacity-70"
-                >
-                  {showKey ? <EyeOff size={16} strokeWidth={1.75} /> : <Eye size={16} strokeWidth={1.75} />}
-                </button>
-              </span>
-            </label>
-          </div>
-
-          {/* 状态行 */}
-          <div className="relative flex flex-wrap items-center gap-x-2 gap-y-1 px-4 py-2.5 text-xs text-[var(--color-muted)]">
-            <span className="row-divider-line absolute inset-x-4 top-0" />
-            <StatusDot status={status} />
-            <span className={cn(status.kind === 'error' && 'text-red-500')}>{statusTextOf(status)}</span>
-            <span className="tnum">· rev {revision}</span>
-            <span>
-              · {lastSyncedAt ? dayjs(lastSyncedAt).format('M月D日 HH:mm') : '尚未同步'}
-            </span>
-          </div>
-
-          {/* 主操作 */}
-          <div className="px-4 pb-2 pt-1">
-            <button
-              type="button"
-              disabled={busy !== null || !configured}
-              className="btn-primary min-h-11 w-full text-sm"
-              onClick={() => void run('sync', doFullSync, '同步完成')}
-            >
-              {busy === 'sync' ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" /> 同步中…
-                </>
-              ) : !configured ? (
-                '填写地址与密钥后同步'
-              ) : (
-                '立即同步'
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="新密码（至少 8 位）"
+                className="field-focus w-full rounded-xl bg-[var(--color-surface-2)] px-3 py-2.5 text-sm outline-none placeholder:text-[var(--color-muted)]/60"
+              />
+              {pwMessage && <p className="text-xs text-red-500">{pwMessage}</p>}
+              <button
+                type="button"
+                disabled={pwBusy || !currentPassword || !newPassword}
+                className="btn-primary min-h-10 w-full text-sm disabled:opacity-50"
+                onClick={() => void changePassword()}
+              >
+                {pwBusy ? <Loader2 size={15} className="animate-spin" /> : '确认修改'}
+              </button>
+            </div>
+          )}
+          <Row
+            divider
+            icon={<MonitorSmartphone size={18} strokeWidth={1.75} />}
+            title="登录设备"
+            subtitle={sessions ? `${sessions.length} 个活跃会话` : '查看并远程退出其他设备'}
+            onClick={toggleSessions}
+            right={
+              <ChevronDown
+                size={16}
+                strokeWidth={2}
+                className={cn('text-[var(--color-muted)] transition', !sessionsOpen && '-rotate-90')}
+              />
+            }
+          />
+          {sessionsOpen && (
+            <div className="animate-fade-in pb-2">
+              {sessions === null && (
+                <div className="flex justify-center py-3">
+                  <Loader2 size={16} className="animate-spin text-[var(--color-muted)]" />
+                </div>
               )}
-            </button>
-            <div className="mt-2 flex gap-2">
-              <button
-                type="button"
-                disabled={busy !== null || !apiBaseUrl.trim()}
-                className="flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-[var(--color-surface-2)] text-sm text-[var(--color-fg)]/85 active:opacity-80 disabled:opacity-40"
-                onClick={() => void testConnection()}
-              >
-                {busy === 'test' ? <Loader2 size={14} className="animate-spin" /> : null}
-                测试连接
-              </button>
-              <button
-                type="button"
-                aria-expanded={advanced}
-                className="flex min-h-10 flex-1 items-center justify-center gap-1 rounded-xl bg-[var(--color-surface-2)] text-sm text-[var(--color-fg)]/85 active:opacity-80"
-                onClick={() => setAdvanced((v) => !v)}
-              >
-                更多操作
-                <ChevronDown size={14} strokeWidth={2} className={cn('transition', !advanced && '-rotate-90')} />
-              </button>
-            </div>
-            {message && (
-              <p className={cn('mt-2 text-xs', conflict ? 'text-amber-500' : 'text-[var(--color-muted)]')}>{message}</p>
-            )}
-          </div>
-
-          {/* 高级操作 */}
-          {advanced && (
-            <div className="animate-fade-in pb-1">
-              <Row
-                divider
-                icon={<Download size={17} strokeWidth={1.75} />}
-                title="从云端拉取"
-                subtitle="用云端数据覆盖本机"
-                right={
-                  busy === 'pull' ? (
-                    <Loader2 size={16} className="animate-spin text-[var(--color-muted)]" />
-                  ) : undefined
-                }
-                onClick={busy ? undefined : () => void run('pull', doPull, '已从云端拉取')}
-              />
-              <Row
-                divider
-                icon={<Upload size={17} strokeWidth={1.75} />}
-                title="上传到云端"
-                subtitle="把本机数据推送到云端"
-                right={
-                  busy === 'push' ? (
-                    <Loader2 size={16} className="animate-spin text-[var(--color-muted)]" />
-                  ) : undefined
-                }
-                onClick={busy ? undefined : () => void run('push', doPush, '已上传到云端')}
-              />
-              <Row
-                divider
-                icon={<AlertTriangle size={17} strokeWidth={1.75} />}
-                iconColor="#ee5252"
-                title={<span className="text-red-500">强制上传</span>}
-                subtitle="无视冲突，用本机覆盖云端"
-                right={
-                  busy === 'force' ? (
-                    <Loader2 size={16} className="animate-spin text-[var(--color-muted)]" />
-                  ) : undefined
-                }
-                onClick={
-                  busy
-                    ? undefined
-                    : () => {
-                        if (!window.confirm('强制上传会覆盖云端数据，确定？')) return
-                        void run('force', doForcePush, '已强制覆盖云端')
-                      }
-                }
-              />
+              {sessions?.map((s) => (
+                <div key={s.token} className="relative flex items-center gap-3 px-4 py-2.5">
+                  <span className="row-divider-line absolute inset-x-0 top-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm">{deviceLabel(s.userAgent ?? null)}</p>
+                    <p className="truncate text-xs text-[var(--color-muted)]">
+                      {s.ipAddress || '未知 IP'} · 登录于 {dayjs(s.createdAt).format('M月D日 HH:mm')}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={revoking === s.token}
+                    className="min-h-9 rounded-lg px-2.5 text-xs text-red-500 active:opacity-70 disabled:opacity-40"
+                    onClick={() => void revokeSession(s.token)}
+                  >
+                    {revoking === s.token ? <Loader2 size={13} className="animate-spin" /> : '退出'}
+                  </button>
+                </div>
+              ))}
+              {sessions?.length === 0 && (
+                <p className="px-4 py-3 text-xs text-[var(--color-muted)]">暂无其他会话</p>
+              )}
             </div>
           )}
-
-          {/* 冲突处理 */}
-          {conflict && (
-            <div className="animate-fade-in mx-3 mb-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
-              <p className="mb-2 text-xs">云端 revision = {conflict.remote.revision}，请选择：</p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="btn-primary min-h-10 flex-1 text-sm"
-                  onClick={() => {
-                    if (conflict.remote.state) {
-                      applyRemoteOverwrite(conflict.remote.state, conflict.remote.revision)
-                      setRevision(conflict.remote.revision)
-                      setLastSyncedAt(new Date().toISOString())
-                      setMessage('已采用云端数据')
-                    }
-                    setConflict(null)
-                  }}
-                >
-                  用云端覆盖本机
-                </button>
-                <button
-                  type="button"
-                  className="min-h-10 flex-1 rounded-xl border border-amber-500/50 text-sm text-amber-600 active:opacity-80"
-                  onClick={() => {
-                    setConflict(null)
-                    void run('force', doForcePush, '已强制上传本地')
-                  }}
-                >
-                  用本机覆盖云端
-                </button>
-              </div>
-            </div>
-          )}
+          <Row
+            divider
+            icon={<LogOut size={18} strokeWidth={1.75} />}
+            title="退出登录"
+            subtitle="本地数据将清空，云端保留，随时可再登录"
+            onClick={() => void signOut()}
+          />
+          <Row
+            divider
+            icon={<Trash2 size={18} strokeWidth={1.75} />}
+            iconColor="#ee5252"
+            title={<span className="text-red-500">注销账号</span>}
+            subtitle="永久删除云端全部数据，不可恢复"
+            onClick={() => void deleteAccount()}
+          />
         </Section>
 
         {/* 关于 */}
@@ -493,7 +576,7 @@ export function SettingsPage() {
           <Row
             divider
             title="滴答清单复刻"
-            subtitle="本地优先 · 数据存于本机，可选用云同步"
+            subtitle="云端多端同步 · 离线可用 · 实体级冲突合并"
           />
         </Section>
       </div>

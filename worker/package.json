@@ -5,12 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "deploy": "npm run build:admin && npm run sync:admin && wrangler deploy",
     "db:migrate:local": "wrangler d1 execute dida-clone-db --local --file=schema.sql",
-    "db:migrate:remote": "wrangler d1 execute dida-clone-db --remote --file=schema.sql"
+    "db:migrate:remote": "wrangler d1 execute dida-clone-db --remote --file=schema.sql",
+    "build:admin": "cd ../admin && npm run build",
+    "sync:admin": "mkdir -p public/admin && cp -r ../admin/dist/* public/admin/"
   },
   "dependencies": {
-    "hono": "^4.9.8"
+    "better-auth": "^1.7.7",
+    "hono": "^4.9.8",
+    "kysely": "^0.29.6"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20251008.0",

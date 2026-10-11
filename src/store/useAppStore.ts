@@ -2,7 +2,6 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type {
   ActiveView,
-  BoardGroupBy,
   CalendarMode,
   ChecklistItem,
   FilterState,
@@ -30,7 +29,6 @@ interface AppState {
   selectedTaskId: string | null
   listViewMode: ViewMode
   sortBy: SortBy
-  boardGroupBy: BoardGroupBy
   calendarMode: CalendarMode
   calendarCursor: string
   filter: FilterState
@@ -45,7 +43,6 @@ interface AppState {
   setSelectedTaskId: (id: string | null) => void
   setListViewMode: (m: ViewMode) => void
   setSortBy: (s: SortBy) => void
-  setBoardGroupBy: (g: BoardGroupBy) => void
   setCalendarMode: (m: CalendarMode) => void
   setCalendarCursor: (iso: string) => void
   setFilter: (f: Partial<FilterState>) => void
@@ -143,8 +140,6 @@ export const useAppStore = create<AppState>()(
       selectedTaskId: null,
       listViewMode: 'list',
       sortBy: 'due',
-      // 看板视图已移除；字段保留以兼容同步协议（与 sessions 同理）
-      boardGroupBy: 'priority',
       calendarMode: 'month',
       calendarCursor: dayjs().toISOString(),
       filter: { priorities: [], listIds: [], tagIds: [], query: '' },
@@ -165,7 +160,6 @@ export const useAppStore = create<AppState>()(
       setSelectedTaskId: (id) => set({ selectedTaskId: id }),
       setListViewMode: (m) => set({ listViewMode: m }),
       setSortBy: (s) => set({ sortBy: s }),
-      setBoardGroupBy: (g) => set({ boardGroupBy: g }),
       setCalendarMode: (m) => set({ calendarMode: m }),
       setCalendarCursor: (iso) => set({ calendarCursor: iso }),
       setFilter: (f) => set({ filter: { ...get().filter, ...f } }),
@@ -514,31 +508,9 @@ export const useAppStore = create<AppState>()(
         theme: s.theme,
         activeView: s.activeView,
         sortBy: s.sortBy,
-        boardGroupBy: s.boardGroupBy,
         calendarMode: s.calendarMode,
         notifiedReminders: s.notifiedReminders,
       }),
-      merge: (persisted, current) => {
-        const p = (persisted ?? {}) as Partial<AppState> & { sessions?: unknown }
-        const { sessions: _drop, ...rest } = p
-        const merged = { ...current, ...rest } as AppState
-        // Migrate away from removed pomodoro / habits module views
-        const av = merged.activeView as ActiveView | { kind: 'module'; id: string }
-        if (av?.kind === 'module' && (av as { id: string }).id === 'pomodoro') {
-          merged.activeView = { kind: 'smart', id: 'today' }
-        }
-        if (av?.kind === 'module' && (av as { id: string }).id === 'habits') {
-          merged.activeView = { kind: 'smart', id: 'today' }
-        }
-        // 看板视图已移除：停留在看板的用户迁移到四象限
-        if (av?.kind === 'module' && (av as { id: string }).id === 'board') {
-          merged.activeView = { kind: 'module', id: 'quadrant' }
-        }
-        if ((merged.listViewMode as string) === 'pomodoro') {
-          merged.listViewMode = 'list'
-        }
-        return merged
-      },
     },
   ),
 )

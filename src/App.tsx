@@ -4,6 +4,10 @@ import { CalendarView } from './components/calendar/CalendarView'
 import { BoardView } from './components/board/BoardView'
 import { QuadrantView } from './components/matrix/QuadrantView'
 import { SettingsPage } from './pages/SettingsPage'
+import { SearchPage } from './pages/SearchPage'
+import { ListsPage } from './pages/ListsPage'
+import { TagsPage } from './pages/TagsPage'
+import { FiltersPage } from './pages/FiltersPage'
 import { SyncBootstrap } from './components/common/SyncBootstrap'
 import { useAppStore } from './store/useAppStore'
 import type { ReactNode } from 'react'
@@ -28,6 +32,18 @@ function MainContent() {
         break
       case 'settings':
         content = <SettingsPage />
+        break
+      case 'search':
+        content = <SearchPage />
+        break
+      case 'lists':
+        content = <ListsPage />
+        break
+      case 'tags':
+        content = <TagsPage />
+        break
+      case 'filters':
+        content = <FiltersPage />
         break
       default:
         content = null

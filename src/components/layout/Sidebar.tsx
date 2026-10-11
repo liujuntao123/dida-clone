@@ -1,26 +1,32 @@
 import {
+  AlignLeft,
   Archive,
   Ban,
   CalendarDays,
   CheckCircle2,
+  Folder,
   Inbox,
   LayoutGrid,
+  ListFilter,
   ListChecks,
   Plus,
   Search,
   Settings,
+  Settings2,
   SquareKanban,
   Tag as TagIcon,
   Trash2,
   User,
+  X,
+  type LucideIcon,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useAppStore } from '../../store/useAppStore'
 import { LIST_COLORS, TAG_COLORS } from '../../lib/constants'
 import { dayjs } from '../../lib/dates'
 import { ThemeToggle } from '../common/ThemeToggle'
 import { cn } from '../../lib/cn'
-import type { SmartListId } from '../../types'
+import type { ModuleId, SmartListId } from '../../types'
 
 type Variant = 'desktop' | 'mobile'
 
@@ -54,6 +60,22 @@ function countForSmart(id: SmartListId, tasks: ReturnType<typeof useAppStore.get
   }
 }
 
+/** 智能清单图标：橙色圆角方块 + 白色图形（复刻滴答清单抽屉样式）。 */
+function SmartIcon({ children, plain = false }: { children: ReactNode; plain?: boolean }) {
+  if (plain) {
+    return (
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center text-[var(--color-fg)]">
+        {children}
+      </span>
+    )
+  }
+  return (
+    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[9px] bg-brand text-white">
+      {children}
+    </span>
+  )
+}
+
 export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
   const lists = useAppStore((s) => s.lists)
   const tags = useAppStore((s) => s.tags)
@@ -64,259 +86,225 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
   const addTag = useAppStore((s) => s.addTag)
   const setFilter = useAppStore((s) => s.setFilter)
   const filter = useAppStore((s) => s.filter)
-  const setSidebarOpen = useAppStore((s) => s.setSidebarOpen)
   const inboxId = lists.find((l) => l.isInbox)?.id ?? 'list-inbox'
   const [newListName, setNewListName] = useState('')
   const [newTagName, setNewTagName] = useState('')
   const [showAddList, setShowAddList] = useState(false)
   const [showAddTag, setShowAddTag] = useState(false)
-  const [manageOpen, setManageOpen] = useState(false)
+  const [addMenuOpen, setAddMenuOpen] = useState(false)
 
   const isSmart = (id: SmartListId) => activeView.kind === 'smart' && activeView.id === id
   const isList = (id: string) => activeView.kind === 'list' && activeView.id === id
   const isTag = (id: string) => activeView.kind === 'tag' && activeView.id === id
-  const isModule = (id: 'calendar' | 'board' | 'quadrant' | 'settings') =>
-    activeView.kind === 'module' && activeView.id === id
+  const isModule = (id: ModuleId) => activeView.kind === 'module' && activeView.id === id
 
   const go = (view: Parameters<typeof setActiveView>[0]) => {
+    setAddMenuOpen(false)
     setActiveView(view)
-    setSidebarOpen(false)
   }
 
-  const mobileSmart = useMemo(
-    () =>
-      [
-        { id: 'all' as const, label: '所有', Icon: Archive, count: countForSmart('all', tasks, inboxId) },
-        { id: 'today' as const, label: '今天', Icon: CalendarDays, count: countForSmart('today', tasks, inboxId), badge: String(dayjs().date()) },
-        { id: 'tomorrow' as const, label: '明天', Icon: CalendarDays, count: countForSmart('tomorrow', tasks, inboxId) },
-        { id: 'next7' as const, label: '最近7天', Icon: CalendarDays, count: countForSmart('next7', tasks, inboxId) },
-        { id: 'inbox' as const, label: '收集箱', Icon: Inbox, count: countForSmart('inbox', tasks, inboxId) },
-        { id: 'completed' as const, label: '已完成', Icon: ListChecks, count: countForSmart('completed', tasks, inboxId) },
-        { id: 'abandoned' as const, label: '已放弃', Icon: Ban, count: countForSmart('abandoned', tasks, inboxId) },
-        { id: 'trash' as const, label: '垃圾桶', Icon: Trash2, count: countForSmart('trash', tasks, inboxId) },
-      ] as const,
-    [tasks, inboxId],
-  )
-
-  const todoCountForList = (listId: string) =>
-    tasks.filter((t) => !t.parentId && t.status === 'todo' && t.listId === listId).length
   const todoCountForTag = (tagId: string) =>
     tasks.filter((t) => !t.parentId && t.status === 'todo' && t.tags.includes(tagId)).length
 
   if (variant === 'mobile') {
+    const todayNum = dayjs().date()
+    const weekday = dayjs().format('dd') // zh-cn: 一/二/…/日
+
+    const smartRows: Array<{
+      id: SmartListId
+      label: string
+      count: number
+      icon: ReactNode
+    }> = [
+      {
+        id: 'all',
+        label: '所有',
+        count: countForSmart('all', tasks, inboxId),
+        icon: (
+          <SmartIcon>
+            <Archive size={15} strokeWidth={2.25} />
+          </SmartIcon>
+        ),
+      },
+      {
+        id: 'today',
+        label: '今天',
+        count: countForSmart('today', tasks, inboxId),
+        icon: (
+          <SmartIcon>
+            <span className="flex h-full w-full flex-col items-center justify-center leading-none">
+              <span className="mb-px h-[2.5px] w-3 rounded-full bg-white/80" />
+              <span className="text-[11px] font-bold">{todayNum}</span>
+            </span>
+          </SmartIcon>
+        ),
+      },
+      {
+        id: 'next7',
+        label: '最近7天',
+        count: countForSmart('next7', tasks, inboxId),
+        icon: (
+          <SmartIcon>
+            <span className="flex h-full w-full flex-col items-center justify-center leading-none">
+              <span className="mb-px h-[2.5px] w-3 rounded-full bg-white/80" />
+              <span className="text-[11px] font-bold">{weekday}</span>
+            </span>
+          </SmartIcon>
+        ),
+      },
+      {
+        id: 'inbox',
+        label: '收集箱',
+        count: countForSmart('inbox', tasks, inboxId),
+        icon: (
+          <SmartIcon>
+            <Inbox size={15} strokeWidth={2.25} />
+          </SmartIcon>
+        ),
+      },
+      {
+        id: 'completed',
+        label: '已完成',
+        count: countForSmart('completed', tasks, inboxId),
+        icon: (
+          <SmartIcon plain>
+            <AlignLeft size={20} strokeWidth={2} />
+          </SmartIcon>
+        ),
+      },
+      {
+        id: 'abandoned',
+        label: '已放弃',
+        count: countForSmart('abandoned', tasks, inboxId),
+        icon: (
+          <SmartIcon>
+            <X size={16} strokeWidth={2.75} />
+          </SmartIcon>
+        ),
+      },
+      {
+        id: 'trash',
+        label: '垃圾桶',
+        count: countForSmart('trash', tasks, inboxId),
+        icon: (
+          <SmartIcon plain>
+            <Trash2 size={19} strokeWidth={1.75} />
+          </SmartIcon>
+        ),
+      },
+    ]
+
     return (
       <aside
-        className="flex h-full w-full flex-col bg-[var(--color-surface)] text-[var(--color-fg)]"
+        className="relative flex h-full w-full flex-col bg-[var(--color-surface)] text-[var(--color-fg)]"
         style={{
           paddingTop: 'env(safe-area-inset-top, 0px)',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
-        <div className="flex items-center gap-3 px-4 pb-3 pt-4">
-          <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--color-border)]">
+        {/* 头部：头像 + 用户名 + 搜索 / 设置 */}
+        <div className="flex items-center gap-3 px-4 pb-2 pt-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--color-card)]">
             <User size={22} className="text-brand" />
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-base font-semibold">用户</div>
-          </div>
+          <div className="min-w-0 flex-1 truncate text-[17px] font-semibold">用户</div>
           <button
             type="button"
-            className="flex h-10 w-10 items-center justify-center text-[var(--color-muted)]"
+            className="flex h-11 w-11 items-center justify-center text-[var(--color-fg)]/85 active:opacity-70"
+            aria-label="搜索"
+            onClick={() => go({ kind: 'module', id: 'search' })}
+          >
+            <Search size={21} strokeWidth={1.75} />
+          </button>
+          <button
+            type="button"
+            className="flex h-11 w-11 items-center justify-center text-[var(--color-fg)]/85 active:opacity-70"
             aria-label="设置"
             onClick={() => go({ kind: 'module', id: 'settings' })}
           >
-            <Settings size={20} />
+            <Settings size={21} strokeWidth={1.75} />
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-2 pb-2">
-          {mobileSmart.map(({ id, label, Icon, count, ...rest }) => {
+        <nav className="flex-1 overflow-y-auto px-2.5 pb-2 pt-1">
+          {smartRows.map(({ id, label, icon, count }) => {
             const active = isSmart(id)
-            const badge = 'badge' in rest ? (rest as { badge?: string }).badge : undefined
             return (
               <button
                 key={id}
                 type="button"
                 onClick={() => go({ kind: 'smart', id })}
+                aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'mb-0.5 flex w-full min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] transition',
-                  active ? 'bg-brand/20 text-[var(--color-fg)]' : 'text-[var(--color-fg)]/90 hover:bg-[var(--color-surface-2)]',
+                  'mb-0.5 flex w-full min-h-12 items-center gap-3.5 rounded-xl px-2.5 text-[15px] transition',
+                  active ? 'bg-brand/15' : 'active:bg-[var(--color-surface-2)]',
                 )}
               >
-                <span className="relative text-brand">
-                  <Icon size={20} strokeWidth={1.75} />
-                  {badge && (
-                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center pt-1 text-[9px] font-bold text-brand">
-                      {badge}
-                    </span>
-                  )}
-                </span>
+                {icon}
                 <span className="flex-1 text-left">{label}</span>
-                {typeof count === 'number' && count > 0 && (
-                  <span className="text-sm text-[var(--color-muted)]">{count}</span>
-                )}
+                {count > 0 && <span className="text-sm text-[var(--color-muted)]">{count}</span>}
               </button>
             )
           })}
+        </nav>
 
-          {lists.filter((l) => !l.isInbox).length > 0 && (
-            <div className="mt-3 border-t border-[var(--color-border)] pt-2">
-              {lists
-                .filter((l) => !l.isInbox)
-                .map((l) => (
-                  <button
-                    key={l.id}
-                    type="button"
-                    className={cn(
-                      'mb-0.5 flex w-full min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-[15px]',
-                      isList(l.id) ? 'bg-brand/20' : 'hover:bg-[var(--color-surface-2)]',
-                    )}
-                    onClick={() => go({ kind: 'list', id: l.id })}
-                  >
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: l.color }} />
-                    <span className="flex-1 text-left">{l.name}</span>
-                    <span className="text-sm text-[var(--color-muted)]">
-                      {todoCountForList(l.id) || ''}
-                    </span>
-                  </button>
-                ))}
-            </div>
-          )}
-
-          {tags.length > 0 && (
-            <div className="mt-3 border-t border-[var(--color-border)] pt-2">
-              {tags.map((t) => (
+        {/* ＋添加 弹出菜单：清单 / 过滤器 / 标签（各自独立页面） */}
+        {addMenuOpen && (
+          <>
+            <button
+              type="button"
+              className="fixed inset-0 z-40 cursor-default"
+              aria-label="关闭菜单"
+              onClick={() => setAddMenuOpen(false)}
+            />
+            <div
+              className="animate-slide-up fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] left-4 z-50 w-48 rounded-2xl bg-[var(--color-card)] p-1.5 shadow-2xl"
+              role="menu"
+            >
+              {(
+                [
+                  { id: 'lists', label: '清单', Icon: Folder as LucideIcon },
+                  { id: 'filters', label: '过滤器', Icon: ListFilter as LucideIcon },
+                  { id: 'tags', label: '标签', Icon: TagIcon as LucideIcon },
+                ] as const
+              ).map(({ id, label, Icon }) => (
                 <button
-                  key={t.id}
+                  key={id}
                   type="button"
-                  className={cn(
-                    'mb-0.5 flex w-full min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-[15px]',
-                    isTag(t.id) ? 'bg-brand/20' : 'hover:bg-[var(--color-surface-2)]',
-                  )}
-                  onClick={() => go({ kind: 'tag', id: t.id })}
+                  role="menuitem"
+                  className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-[15px] active:bg-[var(--color-surface-2)]"
+                  onClick={() => go({ kind: 'module', id: id as ModuleId })}
                 >
-                  <TagIcon size={18} style={{ color: t.color }} />
-                  <span className="flex-1 text-left">{t.name}</span>
-                  <span className="text-sm text-[var(--color-muted)]">
-                    {todoCountForTag(t.id) || ''}
-                  </span>
+                  <Icon size={18} strokeWidth={1.75} className="text-[var(--color-fg)]/85" />
+                  {label}
                 </button>
               ))}
             </div>
-          )}
+          </>
+        )}
 
-          <div className="mt-3 border-t border-[var(--color-border)] pt-2">
-            <button
-              type="button"
-              className={cn(
-                'mb-0.5 flex w-full min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-[15px]',
-                isModule('board') ? 'bg-brand/20' : 'hover:bg-[var(--color-surface-2)]',
-              )}
-              onClick={() => go({ kind: 'module', id: 'board' })}
-            >
-              <SquareKanban size={20} className="text-brand" strokeWidth={1.75} />
-              <span className="flex-1 text-left">看板</span>
-            </button>
-          </div>
-        </nav>
-
-        <div className="flex items-center justify-between border-t border-[var(--color-border)] px-4 py-3">
+        {/* 底部操作条：＋添加（弹出菜单） + 清单管理 */}
+        <div className="flex items-center justify-between border-t border-[var(--color-border)] px-3 py-1.5">
           <button
             type="button"
-            className="flex min-h-11 items-center gap-2 text-[15px] text-[var(--color-fg)]/90"
-            onClick={() => {
-              setShowAddTag(false)
-              setShowAddList((v) => !v)
-            }}
-            aria-expanded={showAddList}
+            className="flex min-h-11 items-center gap-2.5 px-1.5 text-[16px] text-[var(--color-fg)]/90"
+            onClick={() => setAddMenuOpen((v) => !v)}
+            aria-expanded={addMenuOpen}
           >
-            <span className="flex h-6 w-6 items-center justify-center rounded border border-[var(--color-border)]">
-              <Plus size={14} />
+            <span className="flex h-6 w-6 items-center justify-center rounded-md border-[1.5px] border-[var(--color-fg)]/70">
+              <Plus size={15} strokeWidth={2.25} />
             </span>
-            添加清单
+            添加
           </button>
           <button
             type="button"
-            className="flex min-h-11 items-center gap-2 text-[15px] text-[var(--color-fg)]/90"
-            onClick={() => {
-              setShowAddList(false)
-              setShowAddTag((v) => !v)
-            }}
-            aria-expanded={showAddTag}
+            className="flex h-11 w-11 items-center justify-center text-[var(--color-fg)]/85"
+            aria-label="管理清单"
+            onClick={() => go({ kind: 'module', id: 'lists' })}
           >
-            <TagIcon size={16} />
-            添加标签
-          </button>
-          <button
-            type="button"
-            className="flex h-11 w-11 items-center justify-center text-[var(--color-fg)]/90"
-            onClick={() => setManageOpen((v) => !v)}
-            aria-expanded={manageOpen}
-            aria-label="搜索与主题"
-          >
-            <Search size={18} />
+            <Settings2 size={20} strokeWidth={1.75} />
           </button>
         </div>
-
-        {showAddList && (
-          <form
-            className="border-t border-[var(--color-border)] px-3 py-2"
-            onSubmit={(e) => {
-              e.preventDefault()
-              if (!newListName.trim()) return
-              addList(newListName.trim(), LIST_COLORS[lists.length % LIST_COLORS.length])
-              setNewListName('')
-              setShowAddList(false)
-            }}
-          >
-            <input
-              autoFocus
-              value={newListName}
-              onChange={(e) => setNewListName(e.target.value)}
-              placeholder="清单名称"
-              className="w-full rounded-lg bg-[var(--color-surface-2)] px-3 py-2.5 text-sm outline-none"
-            />
-          </form>
-        )}
-
-        {showAddTag && (
-          <form
-            className="border-t border-[var(--color-border)] px-3 py-2"
-            onSubmit={(e) => {
-              e.preventDefault()
-              if (!newTagName.trim()) return
-              addTag(newTagName.trim().replace(/^#/, ''), TAG_COLORS[tags.length % TAG_COLORS.length])
-              setNewTagName('')
-              setShowAddTag(false)
-            }}
-          >
-            <input
-              autoFocus
-              value={newTagName}
-              onChange={(e) => setNewTagName(e.target.value)}
-              placeholder="标签名称"
-              className="w-full rounded-lg bg-[var(--color-surface-2)] px-3 py-2.5 text-sm outline-none"
-            />
-          </form>
-        )}
-
-        {manageOpen && (
-          <div className="animate-fade-in border-t border-[var(--color-border)] px-3 py-2">
-            <div className="relative">
-              <Search size={14} className="absolute left-2.5 top-3 text-[var(--color-muted)]" />
-              <input
-                value={filter.query}
-                onChange={(e) => setFilter({ query: e.target.value })}
-                placeholder="搜索任务…"
-                className="mb-2 w-full rounded-lg bg-[var(--color-card)] py-2 pl-8 pr-3 text-sm outline-none"
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-[var(--color-muted)]">主题</span>
-              <ThemeToggle />
-            </div>
-          </div>
-        )}
       </aside>
     )
   }

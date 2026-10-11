@@ -52,9 +52,9 @@ export function MobileBottomNav() {
     if (activeView.kind === 'module') {
       if (activeView.id === 'calendar') return 'calendar'
       if (activeView.id === 'quadrant') return 'quadrant'
-      if (activeView.id === 'settings' || activeView.id === 'board') return 'more'
+      // 设置 / 看板 / 搜索 / 清单 / 标签 / 过滤器 → 「更多」
+      return 'more'
     }
-    if (isTaskView(activeView)) return 'tasks'
     return 'tasks'
   })()
 

@@ -71,11 +71,21 @@ export type SmartListId =
   | 'abandoned'
   | 'trash'
 
+export type ModuleId =
+  | 'calendar'
+  | 'board'
+  | 'quadrant'
+  | 'settings'
+  | 'search'
+  | 'lists'
+  | 'tags'
+  | 'filters'
+
 export type ActiveView =
   | { kind: 'smart'; id: SmartListId }
   | { kind: 'list'; id: string }
   | { kind: 'tag'; id: string }
-  | { kind: 'module'; id: 'calendar' | 'board' | 'quadrant' | 'settings' }
+  | { kind: 'module'; id: ModuleId }
 
 export interface FilterState {
   priorities: Priority[]

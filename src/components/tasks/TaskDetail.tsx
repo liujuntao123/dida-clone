@@ -17,8 +17,10 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import {
+  ArrowDownWideNarrow,
   ArrowLeft,
   Ban,
+  CalendarDays,
   Check,
   ChevronsUpDown,
   GripVertical,
@@ -29,6 +31,7 @@ import {
   RotateCcw,
   Tag as TagIcon,
   Trash2,
+  X,
 } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import { PRIORITY_LABELS, TAG_COLORS } from '../../lib/constants'
@@ -71,6 +74,18 @@ function ProgressRing({ percent, size = 28 }: { percent: number; size?: number }
       </span>
     </div>
   )
+}
+
+/** 与 TaskItem 的快速改期保持一致：保留原时间，只挪日期。 */
+function dueAtDay(offsetDays: number, preserveTime?: string | null) {
+  const base = preserveTime ? dayjs(preserveTime) : dayjs().hour(18).minute(0).second(0)
+  return dayjs()
+    .add(offsetDays, 'day')
+    .hour(base.hour())
+    .minute(base.minute())
+    .second(0)
+    .millisecond(0)
+    .toISOString()
 }
 
 /**
@@ -131,7 +146,7 @@ function SortableSubtaskRow({
       <button
         type="button"
         aria-label="删除子任务"
-        className="hidden shrink-0 text-[var(--color-muted)] opacity-0 transition group-hover:opacity-100 hover:text-red-500 md:block"
+        className="shrink-0 text-[var(--color-muted)]/50 hover:text-red-500 md:text-[var(--color-muted)] md:opacity-0 md:transition md:group-hover:opacity-100"
         onClick={onDelete}
       >
         <Trash2 size={15} />
@@ -186,7 +201,6 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
   const [dateOpen, setDateOpen] = useState(false)
   const [editingNote, setEditingNote] = useState(false)
   const [checkText, setCheckText] = useState('')
-  const [addingCheck, setAddingCheck] = useState(false)
   const [subText, setSubText] = useState('')
   const [newTagText, setNewTagText] = useState('')
   const checkInputRef = useRef<HTMLInputElement>(null)
@@ -202,7 +216,6 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
     setTagsOpen(false)
     setDateOpen(false)
     setEditingNote(false)
-    setAddingCheck(false)
     setCheckText('')
     setSubText('')
     setNewTagText('')
@@ -215,10 +228,6 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
     el.style.height = 'auto'
     el.style.height = `${el.scrollHeight}px`
   }, [selectedTaskId, task?.title])
-
-  useEffect(() => {
-    if (addingCheck) checkInputRef.current?.focus()
-  }, [addingCheck])
 
   if (!task) {
     if (variant === 'sheet') return null
@@ -266,16 +275,22 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
     setDateOpen(false)
   }
 
+  /** 回车即添加检查项，并保持焦点支持连续录入。 */
   const submitCheck = () => {
-    if (!checkText.trim()) {
-      setAddingCheck(false)
-      return
-    }
+    if (!checkText.trim()) return
     setChecklist(task.id, [
       ...task.checklist,
       { id: uid('cl'), text: checkText.trim(), done: false },
     ])
     setCheckText('')
+    requestAnimationFrame(() => checkInputRef.current?.focus())
+  }
+
+  /** 已完成项沉底（TickTick 的检查项排序）。 */
+  const sortChecklist = () => {
+    const undone = task.checklist.filter((c) => !c.done)
+    const doneItems = task.checklist.filter((c) => c.done)
+    setChecklist(task.id, [...undone, ...doneItems])
   }
 
   const submitSub = () => {
@@ -319,10 +334,10 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
       )}
       onClick={() => closePopovers()}
     >
-      {/* Top bar */}
+      {/* Top bar：清单切换 + 优先级 + 更多（复刻抽屉头部） */}
       <div
         className={cn(
-          'relative flex min-h-11 shrink-0 items-center justify-between px-3',
+          'relative flex min-h-12 shrink-0 items-center justify-between px-3',
           variant === 'panel' && 'border-b border-[var(--color-border)]',
         )}
         onClick={(e) => e.stopPropagation()}
@@ -389,7 +404,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
         </div>
 
         {listOpen && (
-          <div className="absolute left-3 top-11 z-20 max-h-56 w-48 overflow-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] py-1 shadow-lg">
+          <div className="absolute left-3 top-12 z-20 max-h-56 w-48 overflow-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] py-1 shadow-lg">
             {lists.map((l) => (
               <button
                 key={l.id}
@@ -411,7 +426,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
         )}
 
         {priorityOpen && (
-          <div className="absolute right-12 top-11 z-20 w-36 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] py-1 shadow-lg">
+          <div className="absolute right-12 top-12 z-20 w-36 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] py-1 shadow-lg">
             {([3, 2, 1, 0] as Priority[]).map((p) => (
               <button
                 key={p}
@@ -433,7 +448,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
         )}
 
         {menuOpen && (
-          <div className="absolute right-3 top-11 z-20 w-40 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] py-1 shadow-lg">
+          <div className="absolute right-3 top-12 z-20 w-40 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] py-1 shadow-lg">
             {task.status === 'todo' && (
               <>
                 <button
@@ -526,8 +541,8 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
 
       {/* Scrollable body */}
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3">
-        {/* Date & complete row */}
-        <div className="mb-3 flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+        {/* 日期与提醒行（复刻：图标 + 文本，整行可点开编辑区） */}
+        <div className="mb-1 flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
             aria-label={task.status === 'done' ? '标为未完成' : '完成'}
@@ -545,12 +560,16 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
           <button
             type="button"
             className={cn(
-              'min-h-11 flex-1 text-left text-[15px]',
+              'min-h-11 flex flex-1 items-center gap-2.5 text-left text-[15px]',
               task.dueAt || task.remindAt ? 'text-[var(--color-fg)]' : 'text-[var(--color-muted)]',
             )}
-            onClick={() => setDateOpen((v) => !v)}
+            onClick={() => {
+              closePopovers()
+              setDateOpen((v) => !v)
+            }}
           >
-            {dateLabel}
+            <CalendarDays size={18} strokeWidth={1.75} className="shrink-0 opacity-80" />
+            <span className="truncate">{dateLabel}</span>
           </button>
           {progressTotal > 0 && <ProgressRing percent={progressPct} />}
         </div>
@@ -560,6 +579,32 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
             className="mb-3 space-y-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* 快捷改期 */}
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="min-h-9 rounded-full bg-brand/15 px-3.5 text-xs text-brand active:opacity-80"
+                onClick={() => updateTask(task.id, { dueAt: dueAtDay(0, task.dueAt) })}
+              >
+                今天
+              </button>
+              <button
+                type="button"
+                className="min-h-9 rounded-full bg-brand/15 px-3.5 text-xs text-brand active:opacity-80"
+                onClick={() => updateTask(task.id, { dueAt: dueAtDay(1, task.dueAt) })}
+              >
+                明天
+              </button>
+              {(task.dueAt || task.remindAt) && (
+                <button
+                  type="button"
+                  className="min-h-9 rounded-full border border-[var(--color-border)] px-3.5 text-xs text-[var(--color-muted)] active:opacity-80"
+                  onClick={() => updateTask(task.id, { dueAt: null, remindAt: null })}
+                >
+                  清除
+                </button>
+              )}
+            </div>
             <label className="block text-xs text-[var(--color-muted)]">
               截止日期
               <input
@@ -570,7 +615,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
                     dueAt: e.target.value ? dayjs(e.target.value).toISOString() : null,
                   })
                 }
-                className="field-focus mt-1 w-full rounded-lg bg-[var(--color-surface-2)] px-2.5 py-2 text-sm"
+                className="field-focus mt-1 w-full rounded-lg bg-[var(--color-card)] px-2.5 py-2 text-sm"
               />
             </label>
             <label className="block text-xs text-[var(--color-muted)]">
@@ -583,18 +628,9 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
                     remindAt: e.target.value ? dayjs(e.target.value).toISOString() : null,
                   })
                 }
-                className="field-focus mt-1 w-full rounded-lg bg-[var(--color-surface-2)] px-2.5 py-2 text-sm"
+                className="field-focus mt-1 w-full rounded-lg bg-[var(--color-card)] px-2.5 py-2 text-sm"
               />
             </label>
-            {(task.dueAt || task.remindAt) && (
-              <button
-                type="button"
-                className="text-xs text-brand"
-                onClick={() => updateTask(task.id, { dueAt: null, remindAt: null })}
-              >
-                清除日期与提醒
-              </button>
-            )}
           </div>
         )}
 
@@ -609,12 +645,105 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
             el.style.height = 'auto'
             el.style.height = `${el.scrollHeight}px`
           }}
-          className="accent-caret mb-2 w-full resize-none border-0 bg-transparent text-[22px] font-semibold leading-snug text-[var(--color-fg)] outline-none"
+          className="accent-caret mb-1 mt-2 w-full resize-none border-0 bg-transparent text-[22px] font-semibold leading-snug text-[var(--color-fg)] outline-none"
           placeholder="任务标题"
         />
 
+        {/* Tags：chips 常驻 + 「＋标签」入口，点开编辑面板 */}
+        <div className="mb-1 flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+          {task.tags.map((tid) => {
+            const t = tags.find((x) => x.id === tid)
+            if (!t) return null
+            return (
+              <button
+                key={tid}
+                type="button"
+                className={cn(
+                  'flex min-h-8 items-center gap-1 rounded-full px-2.5 text-xs',
+                  tagsOpen ? 'text-white' : 'text-white',
+                )}
+                style={{ background: t.color }}
+                title={tagsOpen ? '点击移除标签' : '管理标签'}
+                onClick={() => {
+                  if (tagsOpen) {
+                    updateTask(task.id, { tags: task.tags.filter((id) => id !== tid) })
+                  } else {
+                    closePopovers()
+                    setTagsOpen(true)
+                  }
+                }}
+              >
+                #{t.name}
+                {tagsOpen && <X size={11} strokeWidth={2.5} />}
+              </button>
+            )
+          })}
+          <button
+            type="button"
+            className={cn(
+              'flex min-h-8 items-center gap-1 rounded-full border border-dashed px-2.5 text-xs',
+              tagsOpen
+                ? 'border-brand text-brand'
+                : 'border-[var(--color-border)] text-[var(--color-muted)]',
+            )}
+            onClick={() => {
+              setDateOpen(false)
+              setTagsOpen((v) => !v)
+            }}
+          >
+            <TagIcon size={12} />
+            {task.tags.length > 0 ? '编辑' : '标签'}
+          </button>
+        </div>
+
+        {/* Tags panel */}
+        {tagsOpen && (
+          <div
+            className="animate-fade-in mb-2 flex flex-wrap gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {tags.map((t) => {
+              const on = task.tags.includes(t.id)
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() =>
+                    updateTask(task.id, {
+                      tags: on ? task.tags.filter((id) => id !== t.id) : [...task.tags, t.id],
+                    })
+                  }
+                  className={cn(
+                    'min-h-9 rounded-full px-2.5 py-1 text-xs',
+                    on ? 'text-white' : 'border border-[var(--color-border)]',
+                  )}
+                  style={on ? { background: t.color } : undefined}
+                >
+                  #{t.name}
+                </button>
+              )
+            })}
+            <form
+              className="flex min-h-9 items-center gap-1 rounded-full border border-dashed border-[var(--color-border)] px-2.5 py-1"
+              onSubmit={(e) => {
+                e.preventDefault()
+                createTagAndAssign()
+              }}
+            >
+              <Plus size={12} className="shrink-0 text-[var(--color-muted)]" />
+              <input
+                value={newTagText}
+                onChange={(e) => setNewTagText(e.target.value)}
+                placeholder="新建标签"
+                aria-label="新建标签"
+                className="accent-caret w-20 bg-transparent text-xs outline-none placeholder:text-[var(--color-muted)]"
+              />
+            </form>
+          </div>
+        )}
+
         {/* Description */}
-        <div className="mb-4" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-2" onClick={(e) => e.stopPropagation()}>
           {editingNote ? (
             <div>
               <textarea
@@ -656,7 +785,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
           )}
         </div>
 
-        {/* Checklist + subtasks (TickTick-style rows) */}
+        {/* Checklist（换行/回车即可添加，右侧排序按钮） */}
         <div onClick={(e) => e.stopPropagation()}>
           <ul>
             {task.checklist.map((c, i) => (
@@ -696,7 +825,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
                 <button
                   type="button"
                   aria-label="删除检查项"
-                  className="hidden shrink-0 text-[var(--color-muted)] opacity-0 transition group-hover:opacity-100 hover:text-red-500 md:block"
+                  className="shrink-0 text-[var(--color-muted)]/50 hover:text-red-500 md:text-[var(--color-muted)] md:opacity-0 md:transition md:group-hover:opacity-100"
                   onClick={() => setChecklist(task.id, task.checklist.filter((x) => x.id !== c.id))}
                 >
                   <Trash2 size={15} />
@@ -704,37 +833,47 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
               </li>
             ))}
 
-            {addingCheck && (
-              <li
-                className={cn(
-                  'flex items-center gap-3 py-3',
-                  task.checklist.length > 0 && 'border-t border-[var(--color-border)]',
-                )}
+            {/* 常驻添加行：占位符提示「换行即可添加检查事项」 */}
+            <li
+              className={cn(
+                'flex items-center gap-3 py-3',
+                task.checklist.length > 0 && 'border-t border-[var(--color-border)]',
+              )}
+            >
+              <button
+                type="button"
+                aria-label="填写检查项"
+                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] border border-[var(--color-border)]"
+                onClick={() => checkInputRef.current?.focus()}
+              />
+              <input
+                ref={checkInputRef}
+                value={checkText}
+                onChange={(e) => setCheckText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    submitCheck()
+                  }
+                  if (e.key === 'Escape') setCheckText('')
+                }}
+                onBlur={() => {
+                  if (checkText.trim()) submitCheck()
+                }}
+                placeholder="换行即可添加检查事项"
+                aria-label="新检查项"
+                className="accent-caret min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-[var(--color-muted)]"
+              />
+              <button
+                type="button"
+                aria-label="排序检查项"
+                title="已完成项沉底"
+                className="flex h-8 w-8 shrink-0 items-center justify-center text-[var(--color-muted)]/70 active:opacity-70"
+                onClick={sortChecklist}
               >
-                <span className="h-5 w-5 shrink-0 rounded-[5px] border border-[var(--color-border)]" />
-                <input
-                  ref={checkInputRef}
-                  value={checkText}
-                  onChange={(e) => setCheckText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      submitCheck()
-                    }
-                    if (e.key === 'Escape') {
-                      setAddingCheck(false)
-                      setCheckText('')
-                    }
-                  }}
-                  onBlur={() => {
-                    if (checkText.trim()) submitCheck()
-                    else setAddingCheck(false)
-                  }}
-                  placeholder="添加检查项"
-                  className="accent-caret min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-[var(--color-muted)]"
-                />
-              </li>
-            )}
+                <ArrowDownWideNarrow size={16} />
+              </button>
+            </li>
           </ul>
 
           {/* Subtasks — only top-level tasks can have children */}
@@ -795,76 +934,9 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
             </DndContext>
           )}
         </div>
-
-        {/* Tags panel */}
-        {tagsOpen && (
-          <div
-            className="mt-3 flex flex-wrap gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {tags.map((t) => {
-              const on = task.tags.includes(t.id)
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() =>
-                    updateTask(task.id, {
-                      tags: on ? task.tags.filter((id) => id !== t.id) : [...task.tags, t.id],
-                    })
-                  }
-                  className={cn(
-                    'min-h-9 rounded-full px-2.5 py-1 text-xs',
-                    on ? 'text-white' : 'border border-[var(--color-border)]',
-                  )}
-                  style={on ? { background: t.color } : undefined}
-                >
-                  #{t.name}
-                </button>
-              )
-            })}
-            <form
-              className="flex min-h-9 items-center gap-1 rounded-full border border-dashed border-[var(--color-border)] px-2.5 py-1"
-              onSubmit={(e) => {
-                e.preventDefault()
-                createTagAndAssign()
-              }}
-            >
-              <Plus size={12} className="shrink-0 text-[var(--color-muted)]" />
-              <input
-                value={newTagText}
-                onChange={(e) => setNewTagText(e.target.value)}
-                placeholder="新建标签"
-                aria-label="新建标签"
-                className="accent-caret w-20 bg-transparent text-xs outline-none placeholder:text-[var(--color-muted)]"
-              />
-            </form>
-          </div>
-        )}
-
-        {task.tags.length > 0 && !tagsOpen && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {task.tags.map((tid) => {
-              const t = tags.find((x) => x.id === tid)
-              if (!t) return null
-              return (
-                <button
-                  key={tid}
-                  type="button"
-                  className="rounded-full px-2 py-0.5 text-xs text-white"
-                  style={{ background: t.color }}
-                  title="管理标签"
-                  onClick={() => setTagsOpen(true)}
-                >
-                  #{t.name}
-                </button>
-              )
-            })}
-          </div>
-        )}
       </div>
 
-      {/* Bottom toolbar — P0/P1 only: tag + checklist. No attachment. */}
+      {/* Bottom toolbar — 标签 / 检查项 / 子任务（附件暂不支持） */}
       <div
         className="flex shrink-0 items-center gap-1 border-t border-[var(--color-border)] px-2"
         style={{
@@ -896,7 +968,8 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
           aria-label="添加检查项"
           onClick={() => {
             setTagsOpen(false)
-            setAddingCheck(true)
+            setDateOpen(false)
+            checkInputRef.current?.focus()
           }}
         >
           <ListTodo size={20} strokeWidth={1.75} />
@@ -914,7 +987,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
             <ListTree size={20} strokeWidth={1.75} />
           </button>
         )}
-        {/* Third slot intentionally empty — no P2 attachment icon */}
+        {/* Fourth slot intentionally empty — no attachment icon */}
       </div>
     </div>
   )

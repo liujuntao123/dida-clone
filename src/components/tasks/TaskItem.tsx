@@ -120,16 +120,18 @@ export function TaskItem({
     })
   }
 
+  // 呼出宽度 = 按钮总宽：react-swipeable-list 要求拖动超过 actions 总宽才能保持展开。
+  // 控制在 ~170px（约 43% 屏宽），避免「要滑大半屏才呼出」。
   const leadingActions = (
     <LeadingActions>
       <SwipeAction onClick={completeWithUndo}>
-        <div className="flex h-full min-w-[72px] flex-col items-center justify-center gap-0.5 bg-emerald-500 px-3 text-xs text-white">
+        <div className="flex h-full min-w-[64px] flex-col items-center justify-center gap-0.5 bg-emerald-500 px-2 text-xs text-white">
           <CheckCircle2 size={18} />
           完成
         </div>
       </SwipeAction>
       <SwipeAction onClick={() => togglePin(task.id)}>
-        <div className="flex h-full min-w-[72px] flex-col items-center justify-center gap-0.5 bg-amber-500 px-3 text-xs text-white">
+        <div className="flex h-full min-w-[64px] flex-col items-center justify-center gap-0.5 bg-amber-500 px-2 text-xs text-white">
           <Pin size={18} />
           {pinned ? '取消置顶' : '置顶'}
         </div>
@@ -139,26 +141,20 @@ export function TaskItem({
 
   const trailingActions = (
     <TrailingActions>
-      <SwipeAction onClick={() => setDueWithToast('今天', dueAtDay(0, task.dueAt))}>
-        <div className="flex h-full min-w-[64px] flex-col items-center justify-center gap-0.5 bg-brand px-2 text-xs text-white">
-          <CalendarDays size={16} />
-          今天
-        </div>
-      </SwipeAction>
       <SwipeAction onClick={() => setDueWithToast('明天', dueAtDay(1, task.dueAt))}>
-        <div className="flex h-full min-w-[64px] flex-col items-center justify-center gap-0.5 bg-brand-hover px-2 text-xs text-white">
+        <div className="flex h-full min-w-[56px] flex-col items-center justify-center gap-0.5 bg-brand px-1 text-xs text-white">
           <CalendarDays size={16} />
           明天
         </div>
       </SwipeAction>
       <SwipeAction onClick={() => setMoveOpen(true)}>
-        <div className="flex h-full min-w-[64px] flex-col items-center justify-center gap-0.5 bg-violet-500 px-2 text-xs text-white">
+        <div className="flex h-full min-w-[56px] flex-col items-center justify-center gap-0.5 bg-violet-500 px-1 text-xs text-white">
           <FolderInput size={16} />
           移动
         </div>
       </SwipeAction>
       <SwipeAction destructive onClick={deleteWithUndo}>
-        <div className="flex h-full min-w-[64px] flex-col items-center justify-center gap-0.5 bg-red-500 px-2 text-xs text-white">
+        <div className="flex h-full min-w-[56px] flex-col items-center justify-center gap-0.5 bg-red-500 px-1 text-xs text-white">
           <Trash2 size={16} />
           删除
         </div>
@@ -379,7 +375,7 @@ export function TaskItem({
   return (
     <>
       <SwipeableListItem
-        maxSwipe={0.85}
+        maxSwipe={0.7}
         threshold={0.35}
         // fullSwipe 关闭：左/右滑只展开操作按钮，需点按才触发，
         // 不会再出现「一滑就删除」的误触。

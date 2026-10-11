@@ -35,6 +35,8 @@ interface AppState {
   calendarCursor: string
   filter: FilterState
   sidebarOpen: boolean
+  /** 最近一次的非模块视图（任务/清单/标签），用于搜索等模块页的「返回」。 */
+  lastListView: ActiveView
   notifiedReminders: string[]
 
   setTheme: (t: ThemeMode) => void
@@ -146,11 +148,17 @@ export const useAppStore = create<AppState>()(
       calendarCursor: dayjs().toISOString(),
       filter: { priorities: [], listIds: [], tagIds: [], query: '' },
       sidebarOpen: false,
+      lastListView: { kind: 'smart', id: 'today' },
       notifiedReminders: [],
 
       setTheme: (t) => set({ theme: t }),
       toggleTheme: () => set({ theme: get().theme === 'light' ? 'dark' : 'light' }),
-      setActiveView: (v) => set({ activeView: v, sidebarOpen: false }),
+      setActiveView: (v) =>
+        set({
+          activeView: v,
+          sidebarOpen: false,
+          ...(v.kind !== 'module' ? { lastListView: v } : null),
+        }),
       setSelectedTaskId: (id) => set({ selectedTaskId: id }),
       setListViewMode: (m) => set({ listViewMode: m }),
       setSortBy: (s) => set({ sortBy: s }),

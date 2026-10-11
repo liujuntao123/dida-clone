@@ -5,7 +5,7 @@ import { useAppStore } from '../../store/useAppStore'
 import { dayjs, parseNaturalDate } from '../../lib/dates'
 import { cn } from '../../lib/cn'
 
-const FAB_POS_KEY = 'dida-fab-pos'
+const FAB_POS_KEY = 'dida-fab-pos-v2' // v2：默认位置改为右下角（旧位置不迁移）
 const FAB_SIZE = 56
 const BOTTOM_NAV = 56
 const EDGE_GAP = 16
@@ -31,7 +31,8 @@ function readPos(): FabPos {
     /* ignore */
   }
   const h = typeof window !== 'undefined' ? window.innerHeight : 700
-  return { side: 'right', top: Math.max(TOP_MIN, h - BOTTOM_NAV - FAB_SIZE - 96) }
+  // 默认贴着底栏右下角（留出 EDGE_GAP 边距）
+  return { side: 'right', top: Math.max(TOP_MIN, h - BOTTOM_NAV - FAB_SIZE - EDGE_GAP) }
 }
 
 function clampTop(top: number, vh: number) {
@@ -41,6 +42,13 @@ function clampTop(top: number, vh: number) {
 
 export function MobileFab() {
   const quickAdd = useAppStore((s) => s.quickAdd)
+  const sidebarOpen = useAppStore((s) => s.sidebarOpen)
+  const activeView = useAppStore((s) => s.activeView)
+  // 搜索 / 清单 / 标签 / 过滤器 / 设置等工具页不显示 FAB（参考滴答清单）
+  const fabHidden =
+    sidebarOpen ||
+    (activeView.kind === 'module' &&
+      ['settings', 'search', 'lists', 'tags', 'filters'].includes(activeView.id))
   const [open, setOpen] = useState(false)
   const [value, setValue] = useState('')
   const [vw, setVw] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 390))
@@ -156,6 +164,7 @@ export function MobileFab() {
           'fixed z-40 flex h-14 w-14 items-center justify-center rounded-full bg-brand text-white shadow-lg shadow-brand/35 md:hidden',
           'active:scale-95 touch-none select-none',
           live && 'scale-105 opacity-95',
+          fabHidden && 'pointer-events-none opacity-0',
         )}
         style={{
           left,

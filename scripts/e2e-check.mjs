@@ -192,8 +192,12 @@ async function mobileSuite(browser) {
     const previewText = await page.evaluate(() => document.body.innerText)
     ok(previewText.includes('识别日期'), '自然语言日期被识别')
     await shot(page, 'm07-quickadd')
+    // 注意：侧栏抽屉常驻挂载且也有「添加」按钮，必须限定在快速添加抽屉内查找
     await page.evaluate(() => {
-      const btn = [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === '添加')
+      const drawer = document.querySelector('[data-vaul-drawer]')
+      const btn = [...(drawer?.querySelectorAll('button') ?? [])].find(
+        (b) => b.textContent.trim() === '添加',
+      )
       btn?.click()
     })
     await sleep(400)
@@ -204,7 +208,7 @@ async function mobileSuite(browser) {
     await sleep(300)
   }
 
-  // 8. 侧栏「添加标签」
+  // 8. 侧栏「＋添加」→ 标签管理页新建标签（新起页面形式）
   const openDrawer = async () => {
     await swipe(page, h1Point.x, h1Point.y, h1Point.x + 230, h1Point.y + 4)
     await sleep(450)
@@ -218,22 +222,32 @@ async function mobileSuite(browser) {
   d = await openDrawer()
   ok(d && d.x === 0, `再次右滑可打开菜单 (panel.x=${d?.x})`)
   await page.evaluate(() => {
-    const btn = [...document.querySelectorAll('button')].find((b) => b.textContent.includes('添加标签'))
+    const btn = [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === '添加')
     btn?.click()
   })
   await sleep(300)
-  const tagInput = await page.$('input[placeholder="标签名称"]')
-  ok(!!tagInput, '侧栏出现「添加标签」表单（此前移动端无法建标签）')
-  await tagInput.type('自动化标签')
-  await page.keyboard.press('Enter')
+  await page.evaluate(() => {
+    const item = [...document.querySelectorAll('[role="menuitem"]')].find((b) => b.textContent.trim() === '标签')
+    item?.click()
+  })
+  await sleep(500)
+  const tagPageH1 = await page.$eval('h1', (el) => el.textContent)
+  ok(tagPageH1 === '标签', `「标签」入口打开独立标签页 (h1=${tagPageH1})`)
+  await page.evaluate(() => document.querySelector('button[aria-label="添加标签"]')?.click())
   await sleep(400)
-  const sidebarHasTag = await page.evaluate(() => document.body.innerText.includes('自动化标签'))
-  ok(sidebarHasTag, '新标签出现在侧栏')
+  const tagInput = await page.$('input[placeholder="名称"]')
+  ok(!!tagInput, '标签页「添加标签」表单含名称输入')
+  if (!tagInput) throw new Error('标签表单未打开')
+  await tagInput.type('自动化标签')
+  await page.evaluate(() => document.querySelector('button[aria-label="保存"]')?.click())
+  await sleep(400)
+  const tagsPageHasTag = await page.evaluate(() => document.body.innerText.includes('自动化标签'))
+  ok(tagsPageHasTag, '保存后新标签出现在标签页列表')
   await shot(page, 'm08-tag-created')
 
-  // 9. 点击标签 → 标签视图
+  // 9. 点击标签行 → 标签视图
   await page.evaluate(() => {
-    const btn = [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === '自动化标签')
+    const btn = [...document.querySelectorAll('button')].find((b) => b.textContent.includes('自动化标签'))
     btn?.click()
   })
   await sleep(500)

@@ -50,3 +50,5 @@ screenshots/walkthrough/
 admin/node_modules
 admin/dist
 worker/public
+
+*.tsbuildinfo

@@ -56,6 +56,14 @@ export function MobileFab() {
     moved: boolean
   } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  // Latest `open` for the resize handler — when the quick-add sheet is open the
+  // Android keyboard resizes the viewport (KeyboardResize.Body); re-clamping
+  // then would permanently move the FAB. Bug: FAB jumped position after adding
+  // a task. Skip repositioning while the sheet is open.
+  const openRef = useRef(open)
+  useEffect(() => {
+    openRef.current = open
+  }, [open])
 
   const baseLeft = pos.side === 'left' ? EDGE_GAP : vw - FAB_SIZE - EDGE_GAP
 
@@ -63,6 +71,8 @@ export function MobileFab() {
     const sync = () => {
       setVw(window.innerWidth)
       setVh(window.innerHeight)
+      // Keyboard/sheet open: viewport shrinks, clamping now would yank the FAB.
+      if (openRef.current) return
       setPos((p) => ({ ...p, top: clampTop(p.top, window.innerHeight) }))
     }
     sync()

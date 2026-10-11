@@ -71,6 +71,7 @@ interface AppState {
   togglePin: (id: string) => void
   setTaskDue: (id: string, dueAt: string | null) => void
   reorderTasks: (orderedIds: string[]) => void
+  reorderSubtasks: (parentId: string, orderedIds: string[]) => void
   addSubtask: (parentId: string, title: string) => Task
   setChecklist: (taskId: string, items: ChecklistItem[]) => void
   toggleChecklistItem: (taskId: string, itemId: string) => void
@@ -78,6 +79,7 @@ interface AppState {
   markReminderNotified: (taskId: string) => void
 
   getVisibleTasks: () => Task[]
+  getCompletedTasks: () => Task[]
   getTaskById: (id: string) => Task | undefined
   getSubtasks: (parentId: string) => Task[]
 }
@@ -223,7 +225,7 @@ export const useAppStore = create<AppState>()(
           completedAt: null,
           createdAt: nowIso(),
           updatedAt: nowIso(),
-          order: get().tasks.length,
+          order: partial.order ?? get().tasks.length,
           pinned: partial.pinned ?? false,
         }
         // Note: do NOT auto-select the new task — adding from quick-add should
@@ -341,13 +343,29 @@ export const useAppStore = create<AppState>()(
         })
       },
 
+      reorderSubtasks: (parentId, orderedIds) => {
+        const map = new Map(orderedIds.map((id, i) => [id, i]))
+        set({
+          tasks: get().tasks.map((t) =>
+            t.parentId === parentId && map.has(t.id)
+              ? { ...t, order: map.get(t.id)!, updatedAt: nowIso() }
+              : t,
+          ),
+        })
+      },
+
       addSubtask: (parentId, title) => {
         const parent = get().tasks.find((t) => t.id === parentId)
+        const siblings = get().tasks.filter((t) => t.parentId === parentId)
+        const order = siblings.length
+          ? Math.max(...siblings.map((s) => s.order)) + 1
+          : 0
         return get().addTask({
           title,
           parentId,
           listId: parent?.listId ?? INBOX_ID,
           priority: parent?.priority ?? 0,
+          order,
         })
       },
 
@@ -417,7 +435,53 @@ export const useAppStore = create<AppState>()(
 
       getTaskById: (id) => get().tasks.find((t) => t.id === id),
       getSubtasks: (parentId) =>
-        get().tasks.filter((t) => t.parentId === parentId && t.status !== 'trashed'),
+        get()
+          .tasks.filter((t) => t.parentId === parentId && t.status !== 'trashed')
+          .sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt)),
+
+      /**
+       * Completed top-level tasks scoped to the current view — used by the
+       * inline「已完成」section so it can expand in place instead of
+       * navigating away to the completed smart list.
+       */
+      getCompletedTasks: () => {
+        const { tasks, activeView, sortBy, filter } = get()
+        let base = tasks.filter((t) => !t.parentId && t.status === 'done')
+
+        switch (activeView.kind) {
+          case 'smart':
+            switch (activeView.id) {
+              case 'inbox':
+                base = base.filter((t) => t.listId === INBOX_ID)
+                break
+              case 'today':
+                base = base.filter((t) => isToday(t.dueAt) || isToday(t.completedAt))
+                break
+              case 'tomorrow':
+                base = base.filter((t) => isTomorrow(t.dueAt))
+                break
+              case 'next7':
+                base = base.filter((t) => isWithinNext7Days(t.dueAt))
+                break
+              case 'all':
+                break
+              default:
+                // completed / abandoned / trash views render their own lists
+                base = []
+            }
+            break
+          case 'list':
+            base = base.filter((t) => t.listId === activeView.id)
+            break
+          case 'tag':
+            base = base.filter((t) => t.tags.includes(activeView.id))
+            break
+          case 'module':
+            base = []
+        }
+
+        return sortTasks(applyFilters(base, filter), sortBy)
+      },
     }),
     {
       name: 'dida-clone-storage',

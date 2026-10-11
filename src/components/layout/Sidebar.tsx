@@ -247,7 +247,7 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
               value={newListName}
               onChange={(e) => setNewListName(e.target.value)}
               placeholder="清单名称"
-              className="w-full rounded-lg bg-[var(--color-card)] px-3 py-2.5 text-sm outline-none ring-1 ring-brand/40"
+              className="w-full rounded-lg bg-[var(--color-surface-2)] px-3 py-2.5 text-sm outline-none"
             />
           </form>
         )}
@@ -306,7 +306,7 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
             value={filter.query}
             onChange={(e) => setFilter({ query: e.target.value })}
             placeholder="搜索任务…"
-            className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] py-2 pl-8 pr-3 text-sm outline-none focus:border-brand"
+            className="w-full rounded-lg bg-[var(--color-surface-2)] py-2 pl-8 pr-3 text-sm outline-none focus:ring-1 focus:ring-brand/40"
           />
         </div>
       </div>
@@ -323,7 +323,8 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
         ).map(({ id, label, icon: Icon }) => (
           <button key={id} type="button" className={itemCls(isSmart(id))} onClick={() => go({ kind: 'smart', id })}>
             <Icon size={16} />
-            {label}
+            <span className="flex-1 text-left">{label}</span>
+            <span className="text-xs text-[var(--color-muted)]">{countForSmart(id, tasks, inboxId) || ''}</span>
           </button>
         ))}
 
@@ -349,7 +350,7 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
               value={newListName}
               onChange={(e) => setNewListName(e.target.value)}
               placeholder="清单名称"
-              className="flex-1 rounded border border-[var(--color-border)] px-2 py-1 text-sm outline-none"
+              className="flex-1 rounded bg-[var(--color-surface-2)] px-2 py-1 text-sm outline-none"
             />
           </form>
         )}
@@ -384,7 +385,7 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
               value={newTagName}
               onChange={(e) => setNewTagName(e.target.value)}
               placeholder="标签名称"
-              className="flex-1 rounded border border-[var(--color-border)] px-2 py-1 text-sm outline-none"
+              className="flex-1 rounded bg-[var(--color-surface-2)] px-2 py-1 text-sm outline-none"
             />
           </form>
         )}
@@ -408,13 +409,19 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
 
         <div className="mb-1 mt-4 px-2 text-xs font-medium text-[var(--color-muted)]">其他</div>
         <button type="button" className={itemCls(isSmart('completed'))} onClick={() => go({ kind: 'smart', id: 'completed' })}>
-          <ListChecks size={16} /> 已完成
+          <ListChecks size={16} />
+          <span className="flex-1 text-left">已完成</span>
+          <span className="text-xs text-[var(--color-muted)]">{countForSmart('completed', tasks, inboxId) || ''}</span>
         </button>
         <button type="button" className={itemCls(isSmart('abandoned'))} onClick={() => go({ kind: 'smart', id: 'abandoned' })}>
-          <Ban size={16} /> 已放弃
+          <Ban size={16} />
+          <span className="flex-1 text-left">已放弃</span>
+          <span className="text-xs text-[var(--color-muted)]">{countForSmart('abandoned', tasks, inboxId) || ''}</span>
         </button>
         <button type="button" className={itemCls(isSmart('trash'))} onClick={() => go({ kind: 'smart', id: 'trash' })}>
-          <Trash2 size={16} /> 垃圾桶
+          <Trash2 size={16} />
+          <span className="flex-1 text-left">垃圾桶</span>
+          <span className="text-xs text-[var(--color-muted)]">{countForSmart('trash', tasks, inboxId) || ''}</span>
         </button>
         <button type="button" className={itemCls(isModule('settings'))} onClick={() => go({ kind: 'module', id: 'settings' })}>
           <Settings size={16} /> 设置

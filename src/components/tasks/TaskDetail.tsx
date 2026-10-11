@@ -2,11 +2,28 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import {
   ArrowLeft,
   Ban,
   Check,
   ChevronsUpDown,
+  GripVertical,
   ListTodo,
+  ListTree,
   MoreVertical,
   RotateCcw,
   Tag as TagIcon,
@@ -17,7 +34,7 @@ import { PRIORITY_LABELS } from '../../lib/constants'
 import { dayjs } from '../../lib/dates'
 import { uid } from '../../lib/id'
 import { PriorityFlag } from '../common/PriorityFlag'
-import type { Priority } from '../../types'
+import type { Priority, Task } from '../../types'
 import { cn } from '../../lib/cn'
 
 function ProgressRing({ percent, size = 28 }: { percent: number; size?: number }) {
@@ -55,6 +72,87 @@ function ProgressRing({ percent, size = 28 }: { percent: number; size?: number }
   )
 }
 
+/**
+ * TickTick-style subtask row: rounded-square checkbox, title (tap to open its
+ * own detail), hover delete, and a drag handle for reordering.
+ */
+function SortableSubtaskRow({
+  sub,
+  showTopBorder,
+  onToggle,
+  onOpen,
+  onDelete,
+}: {
+  sub: Task
+  showTopBorder: boolean
+  onToggle: () => void
+  onOpen: () => void
+  onDelete: () => void
+}) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
+    useSortable({ id: sub.id })
+  const done = sub.status === 'done'
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={cn(
+        'group flex items-start gap-3 py-3',
+        showTopBorder && 'border-t border-[var(--color-border)]',
+        isDragging && 'relative z-10 rounded-xl bg-[var(--color-card)] shadow-md',
+      )}
+    >
+      <button
+        type="button"
+        aria-label={done ? '取消完成' : '完成子任务'}
+        onClick={onToggle}
+        className={cn(
+          'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[6px] border-2 transition',
+          done
+            ? 'border-brand bg-brand text-white'
+            : 'border-[var(--color-muted)]/70 text-transparent hover:border-brand',
+        )}
+      >
+        <Check size={12} strokeWidth={3.5} />
+      </button>
+      <button
+        type="button"
+        className={cn(
+          'accent-caret min-w-0 flex-1 text-left text-[15px]',
+          done ? 'text-[var(--color-muted)] line-through' : 'text-[var(--color-fg)]',
+        )}
+        onClick={onOpen}
+      >
+        {sub.title}
+      </button>
+      <button
+        type="button"
+        aria-label="删除子任务"
+        className="hidden shrink-0 text-[var(--color-muted)] opacity-0 transition group-hover:opacity-100 hover:text-red-500 md:block"
+        onClick={onDelete}
+      >
+        <Trash2 size={15} />
+      </button>
+      <button
+        type="button"
+        ref={setActivatorNodeRef}
+        {...attributes}
+        {...listeners}
+        onPointerDown={(e) => {
+          // Keep vaul from dragging the whole sheet while reordering.
+          e.stopPropagation()
+          listeners?.onPointerDown?.(e)
+        }}
+        aria-label="拖动排序"
+        className="mt-0.5 flex h-6 w-6 shrink-0 cursor-grab touch-none items-center justify-center text-[var(--color-muted)]/60 active:cursor-grabbing"
+      >
+        <GripVertical size={16} />
+      </button>
+    </li>
+  )
+}
+
 export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' }) {
   const selectedTaskId = useAppStore((s) => s.selectedTaskId)
   const setSelectedTaskId = useAppStore((s) => s.setSelectedTaskId)
@@ -70,6 +168,8 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
   const toggleChecklistItem = useAppStore((s) => s.toggleChecklistItem)
   const setChecklist = useAppStore((s) => s.setChecklist)
   const getSubtasks = useAppStore((s) => s.getSubtasks)
+  const addSubtask = useAppStore((s) => s.addSubtask)
+  const reorderSubtasks = useAppStore((s) => s.reorderSubtasks)
 
   const task = useMemo(
     () => tasks.find((t) => t.id === selectedTaskId),
@@ -84,8 +184,12 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
   const [editingNote, setEditingNote] = useState(false)
   const [checkText, setCheckText] = useState('')
   const [addingCheck, setAddingCheck] = useState(false)
+  const [subText, setSubText] = useState('')
   const checkInputRef = useRef<HTMLInputElement>(null)
+  const subInputRef = useRef<HTMLInputElement>(null)
   const titleRef = useRef<HTMLTextAreaElement>(null)
+
+  const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
   useEffect(() => {
     setListOpen(false)
@@ -96,6 +200,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
     setEditingNote(false)
     setAddingCheck(false)
     setCheckText('')
+    setSubText('')
   }, [selectedTaskId])
 
   // Keep the auto-growing title textarea sized when switching tasks
@@ -166,6 +271,25 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
       { id: uid('cl'), text: checkText.trim(), done: false },
     ])
     setCheckText('')
+  }
+
+  const submitSub = () => {
+    const t = subText.trim()
+    if (!t) return
+    addSubtask(task.id, t)
+    setSubText('')
+    // keep focus so several subtasks can be added in a row
+    requestAnimationFrame(() => subInputRef.current?.focus())
+  }
+
+  const handleSubDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e
+    if (!over || active.id === over.id) return
+    const ids = subtasks.map((s) => s.id)
+    const from = ids.indexOf(String(active.id))
+    const to = ids.indexOf(String(over.id))
+    if (from < 0 || to < 0) return
+    reorderSubtasks(task.id, arrayMove(ids, from, to))
   }
 
   const parentTask = task.parentId ? tasks.find((t) => t.id === task.parentId) : undefined
@@ -417,7 +541,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
                     dueAt: e.target.value ? dayjs(e.target.value).toISOString() : null,
                   })
                 }
-                className="field-focus mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] px-2.5 py-2 text-sm"
+                className="field-focus mt-1 w-full rounded-lg bg-[var(--color-surface-2)] px-2.5 py-2 text-sm"
               />
             </label>
             <label className="block text-xs text-[var(--color-muted)]">
@@ -430,7 +554,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
                     remindAt: e.target.value ? dayjs(e.target.value).toISOString() : null,
                   })
                 }
-                className="field-focus mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] px-2.5 py-2 text-sm"
+                className="field-focus mt-1 w-full rounded-lg bg-[var(--color-surface-2)] px-2.5 py-2 text-sm"
               />
             </label>
             {(task.dueAt || task.remindAt) && (
@@ -471,7 +595,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
                 onBlur={() => setEditingNote(false)}
                 rows={4}
                 placeholder="描述"
-                className="accent-caret field-focus w-full rounded-xl border border-[var(--color-border)] bg-transparent p-3 text-[15px] text-[var(--color-fg)]"
+                className="accent-caret w-full resize-none bg-transparent text-[15px] text-[var(--color-fg)] outline-none placeholder:text-[var(--color-muted)]"
               />
               {(task.note ?? '').trim() && (
                 <button
@@ -503,14 +627,14 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
           )}
         </div>
 
-        {/* Checklist + subtasks */}
+        {/* Checklist + subtasks (TickTick-style rows) */}
         <div onClick={(e) => e.stopPropagation()}>
           <ul>
             {task.checklist.map((c, i) => (
               <li
                 key={c.id}
                 className={cn(
-                  'flex items-start gap-3 py-3',
+                  'group flex items-start gap-3 py-3',
                   i > 0 && 'border-t border-[var(--color-border)]',
                 )}
               >
@@ -540,50 +664,22 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
                     c.done && 'text-[var(--color-muted)] line-through',
                   )}
                 />
+                <button
+                  type="button"
+                  aria-label="删除检查项"
+                  className="hidden shrink-0 text-[var(--color-muted)] opacity-0 transition group-hover:opacity-100 hover:text-red-500 md:block"
+                  onClick={() => setChecklist(task.id, task.checklist.filter((x) => x.id !== c.id))}
+                >
+                  <Trash2 size={15} />
+                </button>
               </li>
             ))}
-
-            {isTopLevel &&
-              subtasks.map((s, i) => (
-                <li
-                  key={s.id}
-                  className={cn(
-                    'flex items-start gap-3 py-3',
-                    (task.checklist.length > 0 || i > 0) && 'border-t border-[var(--color-border)]',
-                  )}
-                >
-                  <button
-                    type="button"
-                    aria-label={s.status === 'done' ? '取消完成' : '完成子任务'}
-                    onClick={() => toggleComplete(s.id)}
-                    className={cn(
-                      'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] border transition',
-                      s.status === 'done'
-                        ? 'border-[var(--color-muted)] bg-[var(--color-muted)]/40 text-[var(--color-fg)]'
-                        : 'border-[var(--color-muted)]',
-                    )}
-                  >
-                    {s.status === 'done' && <Check size={12} strokeWidth={3} />}
-                  </button>
-                  <button
-                    type="button"
-                    className={cn(
-                      'min-w-0 flex-1 text-left text-[15px]',
-                      s.status === 'done' && 'text-[var(--color-muted)] line-through',
-                    )}
-                    onClick={() => setSelectedTaskId(s.id)}
-                  >
-                    {s.title}
-                  </button>
-                </li>
-              ))}
 
             {addingCheck && (
               <li
                 className={cn(
                   'flex items-center gap-3 py-3',
-                  (task.checklist.length > 0 || subtasks.length > 0) &&
-                    'border-t border-[var(--color-border)]',
+                  task.checklist.length > 0 && 'border-t border-[var(--color-border)]',
                 )}
               >
                 <span className="h-5 w-5 shrink-0 rounded-[5px] border border-[var(--color-border)]" />
@@ -611,6 +707,64 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
               </li>
             )}
           </ul>
+
+          {/* Subtasks — only top-level tasks can have children */}
+          {isTopLevel && (
+            <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleSubDragEnd}>
+              <SortableContext items={subtasks.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+                <ul>
+                  {subtasks.map((s, i) => (
+                    <SortableSubtaskRow
+                      key={s.id}
+                      sub={s}
+                      showTopBorder={i > 0 || task.checklist.length > 0}
+                      onToggle={() => toggleComplete(s.id)}
+                      onOpen={() => setSelectedTaskId(s.id)}
+                      onDelete={() => softDelete(s.id)}
+                    />
+                  ))}
+
+                  {/* Persistent「添加子任务」row — TickTick keeps an empty row at the end */}
+                  <li
+                    className={cn(
+                      'flex items-start gap-3 py-3',
+                      (task.checklist.length > 0 || subtasks.length > 0) &&
+                        'border-t border-[var(--color-border)]',
+                    )}
+                  >
+                    <button
+                      type="button"
+                      aria-label="添加子任务"
+                      className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[6px] border-2 border-dashed border-[var(--color-muted)]/50 text-transparent"
+                      onClick={() => subInputRef.current?.focus()}
+                    >
+                      <Check size={12} strokeWidth={3.5} />
+                    </button>
+                    <input
+                      ref={subInputRef}
+                      value={subText}
+                      onChange={(e) => setSubText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          submitSub()
+                        }
+                        if (e.key === 'Escape') setSubText('')
+                      }}
+                      onBlur={() => {
+                        if (subText.trim()) submitSub()
+                      }}
+                      placeholder="添加子任务"
+                      className="accent-caret min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-[var(--color-muted)]"
+                    />
+                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-[var(--color-muted)]/30">
+                      <GripVertical size={16} />
+                    </span>
+                  </li>
+                </ul>
+              </SortableContext>
+            </DndContext>
+          )}
         </div>
 
         {/* Tags panel */}
@@ -703,6 +857,19 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
         >
           <ListTodo size={20} strokeWidth={1.75} />
         </button>
+        {isTopLevel && (
+          <button
+            type="button"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-[var(--color-muted)] active:opacity-70"
+            aria-label="添加子任务"
+            onClick={() => {
+              setTagsOpen(false)
+              subInputRef.current?.focus()
+            }}
+          >
+            <ListTree size={20} strokeWidth={1.75} />
+          </button>
+        )}
         {/* Third slot intentionally empty — no P2 attachment icon */}
       </div>
     </div>

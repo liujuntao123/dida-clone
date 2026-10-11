@@ -128,7 +128,7 @@ export function SettingsPage() {
               value={apiBaseUrl}
               onChange={(e) => setApiBaseUrl(e.target.value)}
               placeholder="https://dida-clone-sync.xxx.workers.dev"
-              className="field-focus w-full rounded-xl border border-[var(--color-border)] bg-transparent px-3 py-2.5 text-sm"
+              className="field-focus w-full rounded-xl bg-[var(--color-surface-2)] px-3 py-2.5 text-sm"
             />
           </label>
           <label className="block text-sm">
@@ -139,7 +139,7 @@ export function SettingsPage() {
               onChange={(e) => setAccessKey(e.target.value)}
               placeholder="与 Worker 的 ACCESS_KEY 一致"
               autoComplete="off"
-              className="field-focus w-full rounded-xl border border-[var(--color-border)] bg-transparent px-3 py-2.5 text-sm"
+              className="field-focus w-full rounded-xl bg-[var(--color-surface-2)] px-3 py-2.5 text-sm"
             />
           </label>
           <div className="flex flex-wrap gap-2 text-xs text-[var(--color-muted)]">

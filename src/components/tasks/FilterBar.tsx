@@ -24,7 +24,7 @@ export function FilterBar() {
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as SortBy)}
-          className="rounded-lg border border-[var(--color-border)] bg-transparent px-2 py-1.5"
+          className="rounded-lg bg-[var(--color-surface-2)] px-2 py-1.5 outline-none"
         >
           <option value="due">日期</option>
           <option value="priority">优先级</option>
@@ -39,10 +39,10 @@ export function FilterBar() {
           key={p}
           type="button"
           onClick={() => togglePriority(p)}
-          className={`min-h-8 rounded-full border px-2.5 py-1 ${
+          className={`min-h-8 rounded-full px-2.5 py-1 transition ${
             filter.priorities.includes(p)
-              ? 'border-brand bg-brand/15 text-brand'
-              : 'border-[var(--color-border)]'
+              ? 'bg-brand/15 text-brand'
+              : 'bg-[var(--color-surface-2)] text-[var(--color-muted)]'
           }`}
         >
           {PRIORITY_LABELS[p]}
@@ -52,7 +52,7 @@ export function FilterBar() {
       <select
         value={filter.listIds[0] ?? ''}
         onChange={(e) => setFilter({ listIds: e.target.value ? [e.target.value] : [] })}
-        className="rounded-lg border border-[var(--color-border)] bg-transparent px-2 py-1.5"
+        className="rounded-lg bg-[var(--color-surface-2)] px-2 py-1.5 outline-none"
       >
         <option value="">全部清单</option>
         {lists.map((l) => (
@@ -63,7 +63,7 @@ export function FilterBar() {
       <select
         value={filter.tagIds[0] ?? ''}
         onChange={(e) => setFilter({ tagIds: e.target.value ? [e.target.value] : [] })}
-        className="rounded-lg border border-[var(--color-border)] bg-transparent px-2 py-1.5"
+        className="rounded-lg bg-[var(--color-surface-2)] px-2 py-1.5 outline-none"
       >
         <option value="">全部标签</option>
         {tags.map((t) => (

@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useShallow } from 'zustand/react/shallow'
-import { ChevronDown, ChevronRight, Menu } from 'lucide-react'
+import { ChevronDown, Menu } from 'lucide-react'
 import { SwipeableList, Type as SwipeType } from 'react-swipeable-list'
 import 'react-swipeable-list/dist/styles.css'
 import { useAppStore } from '../../store/useAppStore'
@@ -63,40 +63,42 @@ function groupByList(tasks: Task[], lists: { id: string; name: string }[]): Grou
 
 function TaskGroupCard({
   group,
-  isMobile,
   defaultOpen = true,
+  open,
+  onToggle,
+  renderItems,
+  muted = false,
 }: {
   group: Group
-  isMobile: boolean
   defaultOpen?: boolean
+  /** Controlled open state (used by the inline「已完成」section). */
+  open?: boolean
+  onToggle?: (v: boolean | ((prev: boolean) => boolean)) => void
+  renderItems: (tasks: Task[]) => ReactNode
+  muted?: boolean
 }) {
-  const [open, setOpen] = useState(defaultOpen)
+  const [openState, setOpenState] = useState(defaultOpen)
+  const isOpen = open ?? openState
+  const toggle = () => {
+    if (onToggle) onToggle((v) => !v)
+    else setOpenState((v) => !v)
+  }
   return (
     <div className="overflow-hidden rounded-2xl bg-[var(--color-card)]">
       <button
         type="button"
         className="flex w-full min-h-11 items-center justify-between px-4 py-3"
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggle}
       >
-        <span className="text-[15px] font-medium text-[var(--color-fg)]">{group.title}</span>
+        <span className={cn('text-[15px] font-medium', muted ? 'text-[var(--color-muted)]' : 'text-[var(--color-fg)]')}>
+          {group.title}
+        </span>
         <span className="flex items-center gap-1.5 text-sm text-[var(--color-muted)]">
           {group.tasks.length}
-          <ChevronDown size={16} className={cn('transition', !open && '-rotate-90')} />
+          <ChevronDown size={16} className={cn('transition', !isOpen && '-rotate-90')} />
         </span>
       </button>
-      {open && (
-        <div className="px-1 pb-2">
-          {isMobile ? (
-            <SwipeableList type={SwipeType.IOS} fullSwipe threshold={0.35} className="swipe-task-list">
-              {group.tasks.map((t) => (
-                <TaskItem key={t.id} task={t} compact />
-              ))}
-            </SwipeableList>
-          ) : (
-            group.tasks.map((t) => <TaskItem key={t.id} task={t} compact />)
-          )}
-        </div>
-      )}
+      {isOpen && <div className="px-1 pb-2">{renderItems(group.tasks)}</div>}
     </div>
   )
 }
@@ -104,6 +106,7 @@ function TaskGroupCard({
 export function TaskListPanel() {
   const isMobile = useIsMobile()
   const tasks = useAppStore(useShallow((s) => s.getVisibleTasks()))
+  const completedTasks = useAppStore(useShallow((s) => s.getCompletedTasks()))
   const allTasks = useAppStore((s) => s.tasks)
   const activeView = useAppStore((s) => s.activeView)
   const lists = useAppStore((s) => s.lists)
@@ -112,7 +115,7 @@ export function TaskListPanel() {
   const showToast = useToastStore((s) => s.show)
   const selectedTaskId = useAppStore((s) => s.selectedTaskId)
   const setSidebarOpen = useAppStore((s) => s.setSidebarOpen)
-  const setActiveView = useAppStore((s) => s.setActiveView)
+  const [doneOpen, setDoneOpen] = useState(false)
 
   let title = '任务'
   if (activeView.kind === 'smart') {
@@ -149,38 +152,68 @@ export function TaskListPanel() {
     return [{ key: 'all', title, tasks }]
   }, [tasks, useDateGroups, activeView, lists, title])
 
-  const doneCount = useMemo(
-    () => allTasks.filter((t) => !t.parentId && t.status === 'done').length,
-    [allTasks],
+  // Inline「已完成」section: expand in place, never navigate away from the
+  // current tab (matches TickTick behaviour).
+  const showDoneSection =
+    activeView.kind === 'list' ||
+    activeView.kind === 'tag' ||
+    (activeView.kind === 'smart' &&
+      ['all', 'today', 'tomorrow', 'next7', 'inbox'].includes(activeView.id))
+
+  const subCounts = useMemo(() => {
+    const m = new Map<string, { done: number; total: number }>()
+    for (const t of allTasks) {
+      if (!t.parentId || t.status === 'trashed') continue
+      const e = m.get(t.parentId) ?? { done: 0, total: 0 }
+      e.total += 1
+      if (t.status === 'done') e.done += 1
+      m.set(t.parentId, e)
+    }
+    return m
+  }, [allTasks])
+
+  const doneGroup = useMemo(
+    () => ({ key: '__done', title: '已完成', tasks: completedTasks }),
+    [completedTasks],
+  )
+
+  const renderTaskItems = (groupTasks: Task[]) =>
+    isMobile ? (
+      <SwipeableList type={SwipeType.IOS} fullSwipe threshold={0.35} className="swipe-task-list">
+        {groupTasks.map((t) => (
+          <TaskItem key={t.id} task={t} compact subCount={subCounts.get(t.id)} />
+        ))}
+      </SwipeableList>
+    ) : (
+      groupTasks.map((t) => <TaskItem key={t.id} task={t} compact subCount={subCounts.get(t.id)} />)
+    )
+
+  const emptyBody = completedTasks.length === 0 && (
+    <div className="flex flex-col items-center justify-center gap-2 px-6 py-16 text-center">
+      <p className="text-base text-[var(--color-fg)]/80">暂无任务</p>
+      <p className="text-sm text-[var(--color-muted)] md:hidden">点右下角 + 添加一件事</p>
+      <p className="hidden text-sm text-[var(--color-muted)] md:block">在上方输入框添加一件事</p>
+    </div>
   )
 
   const listBody =
-    tasks.length === 0 ? (
-      <div className="flex flex-col items-center justify-center gap-2 px-6 py-16 text-center">
-        <p className="text-base text-[var(--color-fg)]/80">暂无任务</p>
-        <p className="text-sm text-[var(--color-muted)] md:hidden">点右下角 + 添加一件事</p>
-        <p className="hidden text-sm text-[var(--color-muted)] md:block">在上方输入框添加一件事</p>
-      </div>
+    tasks.length === 0 && !showDoneSection ? (
+      emptyBody
     ) : (
       <div className="flex flex-col gap-3 px-3 py-3">
-        {groups.map((g) => (
-          <TaskGroupCard key={g.key} group={g} isMobile={isMobile} />
+        {tasks.length === 0 ? emptyBody : groups.map((g) => (
+          <TaskGroupCard key={g.key} group={g} renderItems={renderTaskItems} />
         ))}
-        {activeView.kind === 'smart' &&
-          ['all', 'today', 'next7', 'inbox'].includes(activeView.id) &&
-          doneCount > 0 && (
-            <button
-              type="button"
-              className="flex min-h-11 items-center justify-between rounded-2xl bg-[var(--color-card)] px-4 py-3 text-sm text-[var(--color-muted)]"
-              onClick={() => setActiveView({ kind: 'smart', id: 'completed' })}
-            >
-              <span>已完成</span>
-              <span className="flex items-center gap-1">
-                {doneCount}
-                <ChevronRight size={16} />
-              </span>
-            </button>
-          )}
+        {showDoneSection && completedTasks.length > 0 && (
+          <TaskGroupCard
+            group={doneGroup}
+            defaultOpen={false}
+            open={doneOpen}
+            onToggle={setDoneOpen}
+            renderItems={renderTaskItems}
+            muted
+          />
+        )}
       </div>
     )
 

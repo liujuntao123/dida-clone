@@ -6,6 +6,7 @@ import {
   Trash2,
   CalendarDays,
   FolderInput,
+  ListChecks,
   Square,
   CheckSquare,
 } from 'lucide-react'
@@ -35,7 +36,15 @@ function dueAtDay(offsetDays: number, preserveTime?: string | null) {
     .toISOString()
 }
 
-export function TaskItem({ task, compact = false }: { task: Task; compact?: boolean }) {
+export function TaskItem({
+  task,
+  compact = false,
+  subCount,
+}: {
+  task: Task
+  compact?: boolean
+  subCount?: { done: number; total: number }
+}) {
   const isMobile = useIsMobile()
   const selectedTaskId = useAppStore((s) => s.selectedTaskId)
   const setSelectedTaskId = useAppStore((s) => s.setSelectedTaskId)
@@ -190,6 +199,12 @@ export function TaskItem({ task, compact = false }: { task: Task; compact?: bool
           {task.checklist.length > 0 && (
             <span>
               {task.checklist.filter((c) => c.done).length}/{task.checklist.length}
+            </span>
+          )}
+          {subCount && subCount.total > 0 && (
+            <span className="inline-flex items-center gap-0.5">
+              <ListChecks size={12} />
+              {subCount.done}/{subCount.total}
             </span>
           )}
         </div>

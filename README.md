@@ -185,8 +185,8 @@ gh workflow run android.yml --repo liujuntao123/dida-clone
 gh workflow run android.yml --repo liujuntao123/dida-clone \
   -f create_release=true -f release_tag=v0.1.0
 
-# 或推送 tag
-git tag v0.1.0 && git push origin v0.1.0
+# 或推送 tag（附注标签，见 AGENTS.md 发版清单）
+git tag -a v0.1.0 -m "v0.1.0" && git push origin v0.1.0
 ```
 
 #### App 内云同步
@@ -199,9 +199,14 @@ git tag v0.1.0 && git push origin v0.1.0
 src/           # 前端
 android/       # Capacitor Android 工程（提交到 Git，供 CI）
 worker/        # Cloudflare Worker + D1 schema
-.github/workflows/android.yml  # 打 release APK / Release
+scripts/       # e2e-check.mjs：puppeteer 自动化验证（39 项断言）
+.github/workflows/android.yml  # 打 release APK / Release（手动触发）
 screenshots/   # 界面截图
+AGENTS.md      # AI agent / 维护者协作规范（发版清单、已知陷阱）
 ```
+
+> 维护者 / AI agent 请先读 [AGENTS.md](./AGENTS.md)：升版本要同时改 `package.json` 与 `android/app/build.gradle`，改完跑一遍 e2e 再提交。
+
 
 ## 已知限制
 

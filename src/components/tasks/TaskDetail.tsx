@@ -80,7 +80,7 @@ function SortableSubtaskRow({
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        'group flex items-start gap-3 py-3',
+        'group flex items-center gap-3 py-3',
         showTopBorder && 'border-t border-[var(--color-border)]',
         isDragging && 'relative z-10 rounded-xl bg-[var(--color-card)] shadow-md',
       )}
@@ -89,7 +89,7 @@ function SortableSubtaskRow({
         type="button"
         aria-label={done ? '取消完成' : '完成子任务'}
         onClick={onToggle}
-        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center"
+        className="flex h-6 w-6 shrink-0 items-center justify-center"
       >
         <span
           className={cn(
@@ -105,7 +105,7 @@ function SortableSubtaskRow({
       <button
         type="button"
         className={cn(
-          'accent-caret min-w-0 flex-1 truncate text-left text-sm',
+          'accent-caret min-w-0 flex-1 truncate text-left text-sm leading-none',
           done ? 'text-[var(--color-muted)] line-through' : 'text-[var(--color-fg)]',
         )}
         onClick={onOpen}
@@ -115,7 +115,7 @@ function SortableSubtaskRow({
       <button
         type="button"
         aria-label="删除子任务"
-        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-[var(--color-muted)]/50 hover:text-red-500 md:text-[var(--color-muted)] md:opacity-0 md:transition md:group-hover:opacity-100"
+        className="flex h-6 w-6 shrink-0 items-center justify-center text-[var(--color-muted)]/50 hover:text-red-500 md:text-[var(--color-muted)] md:opacity-0 md:transition md:group-hover:opacity-100"
         onClick={onDelete}
       >
         <Trash2 size={15} />
@@ -131,7 +131,7 @@ function SortableSubtaskRow({
           listeners?.onPointerDown?.(e)
         }}
         aria-label="拖动排序"
-        className="mt-0.5 flex h-6 w-6 shrink-0 cursor-grab touch-none items-center justify-center text-[var(--color-muted)]/60 active:cursor-grabbing"
+        className="flex h-6 w-6 shrink-0 cursor-grab touch-none items-center justify-center text-[var(--color-muted)]/60 active:cursor-grabbing"
       >
         <GripVertical size={16} />
       </button>
@@ -776,14 +776,14 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
                   {/* Persistent「添加子任务」row — TickTick keeps an empty row at the end */}
                   <li
                     className={cn(
-                      'flex items-start gap-3 py-3',
+                      'flex items-center gap-3 py-3',
                       subtasks.length > 0 && 'border-t border-[var(--color-border)]',
                     )}
                   >
                     <button
                       type="button"
                       aria-label="添加子任务"
-                      className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center"
+                      className="flex h-6 w-6 shrink-0 items-center justify-center"
                       onClick={() => subInputRef.current?.focus()}
                     >
                       <span className="flex h-5 w-5 items-center justify-center rounded-[6px] border-2 border-dashed border-[var(--color-muted)]/50 text-transparent">
@@ -807,7 +807,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
                       placeholder="添加子任务"
                       className="accent-caret min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--color-muted)]"
                     />
-                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-[var(--color-muted)]/30">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center text-[var(--color-muted)]/30">
                       <GripVertical size={16} />
                     </span>
                   </li>

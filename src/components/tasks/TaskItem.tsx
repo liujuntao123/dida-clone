@@ -4,7 +4,6 @@ import {
   CheckCircle2,
   Pin,
   Trash2,
-  CalendarDays,
   FolderInput,
   RotateCcw,
   Square,
@@ -15,32 +14,19 @@ import { useToastStore } from '../../store/useToastStore'
 import { PriorityFlag } from '../common/PriorityFlag'
 import { ProgressRing } from '../common/ProgressRing'
 import { SwipeRow, type SwipeSide } from './SwipeRow'
-import { formatDue, dayjs } from '../../lib/dates'
+import { formatDue } from '../../lib/dates'
 import { cn } from '../../lib/cn'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { useBackHandler } from '../../lib/backNav'
 import type { Task } from '../../types'
 
-function dueAtDay(offsetDays: number, preserveTime?: string | null) {
-  const base = preserveTime ? dayjs(preserveTime) : dayjs().hour(18).minute(0).second(0)
-  return dayjs()
-    .add(offsetDays, 'day')
-    .hour(base.hour())
-    .minute(base.minute())
-    .second(0)
-    .millisecond(0)
-    .toISOString()
-}
-
 /**
  * 左右滑操作（SwipeRow 自研实现）：
  * 拖过 ~64px 或一记快扫即呼出按钮，点按按钮才触发（fullSwipe 永不开启）。
- * 按钮固定宽度：尾部 3×56 = 168px、头部 2×64 = 128px，数量克制、加前先想手感。
+ * 只在右侧呼出，纯图标按钮固定宽度：移动 / 删除 2×52 = 104px。
  */
-const TRAIL_ACTION_W = 56
-const LEAD_ACTION_W = 64
-const TRAILING_W = TRAIL_ACTION_W * 3 // 明天 / 移动 / 删除
-const LEADING_W = LEAD_ACTION_W * 2 // 完成 / 置顶
+const TRAIL_ACTION_W = 52
+const TRAILING_W = TRAIL_ACTION_W * 2 // 移动 / 删除
 
 export function TaskItem({
   task,
@@ -59,7 +45,6 @@ export function TaskItem({
   const restoreTask = useAppStore((s) => s.restoreTask)
   const permanentlyDelete = useAppStore((s) => s.permanentlyDelete)
   const togglePin = useAppStore((s) => s.togglePin)
-  const setTaskDue = useAppStore((s) => s.setTaskDue)
   const moveTaskToList = useAppStore((s) => s.moveTaskToList)
   const setActiveView = useAppStore((s) => s.setActiveView)
   const lists = useAppStore((s) => s.lists)
@@ -146,48 +131,29 @@ export function TaskItem({
     showToast('已永久删除')
   }
 
-  const setDueWithToast = (label: string, dueAt: string) => {
-    const prev = task.dueAt ?? null
-    setTaskDue(task.id, dueAt)
-    showToast(`已改期为${label}`, {
-      undo: () => setTaskDue(task.id, prev),
-    })
-  }
-
-  const actionBtnCls = (bg: string, w: string, side: 'leading' | 'trailing') =>
+  const actionBtnCls = (bg: string) =>
     cn(
-      'swipe-action flex h-full flex-col items-center justify-center gap-1 text-[11px] leading-none text-white active:brightness-95',
-      side === 'leading' ? 'swipe-action__leading' : 'swipe-action__trailing',
+      'swipe-action swipe-action__trailing flex h-full w-[52px] items-center justify-center text-white active:brightness-95',
       bg,
-      w,
     )
-
-  const leadingActions = (
-    <>
-      <button type="button" className={actionBtnCls('bg-emerald-500', 'w-16', 'leading')} onClick={withClose(completeWithUndo)}>
-        <CheckCircle2 size={18} />
-        完成
-      </button>
-      <button type="button" className={actionBtnCls('bg-amber-500', 'w-16', 'leading')} onClick={withClose(() => togglePin(task.id))}>
-        <Pin size={18} />
-        {pinned ? '取消置顶' : '置顶'}
-      </button>
-    </>
-  )
 
   const trailingActions = (
     <>
-      <button type="button" className={actionBtnCls('bg-brand', 'w-14', 'trailing')} onClick={withClose(() => setDueWithToast('明天', dueAtDay(1, task.dueAt)))}>
-        <CalendarDays size={18} />
-        明天
+      <button
+        type="button"
+        aria-label="移动到清单"
+        className={actionBtnCls('bg-violet-500')}
+        onClick={withClose(() => setMoveOpen(true))}
+      >
+        <FolderInput size={20} />
       </button>
-      <button type="button" className={actionBtnCls('bg-violet-500', 'w-14', 'trailing')} onClick={withClose(() => setMoveOpen(true))}>
-        <FolderInput size={18} />
-        移动
-      </button>
-      <button type="button" className={actionBtnCls('bg-red-500', 'w-14', 'trailing')} onClick={deleteWithUndo}>
-        <Trash2 size={18} />
-        删除
+      <button
+        type="button"
+        aria-label="删除任务"
+        className={actionBtnCls('bg-red-500')}
+        onClick={deleteWithUndo}
+      >
+        <Trash2 size={20} />
       </button>
     </>
   )
@@ -423,9 +389,8 @@ export function TaskItem({
         open={openSide !== null}
         side={openSide}
         onOpenChange={setOpenSide}
-        leadingWidth={LEADING_W}
+        leadingWidth={0}
         trailingWidth={TRAILING_W}
-        leadingActions={leadingActions}
         trailingActions={trailingActions}
         blockSwipe={task.status === 'trashed'}
       >

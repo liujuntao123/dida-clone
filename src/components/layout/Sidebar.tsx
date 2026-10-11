@@ -12,7 +12,6 @@ import {
   Plus,
   Search,
   Settings,
-  Settings2,
   Tag as TagIcon,
   Trash2,
   User,
@@ -282,8 +281,8 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
           </>
         )}
 
-        {/* 底部操作条：＋添加（弹出菜单） + 清单管理 */}
-        <div className="flex items-center justify-between border-t border-[var(--color-border)] px-3 py-1.5">
+        {/* 底部操作条：＋添加（弹出菜单） */}
+        <div className="flex items-center border-t border-[var(--color-border)] px-3 py-1.5">
           <button
             type="button"
             className="flex min-h-11 items-center gap-2.5 px-1.5 text-[16px] text-[var(--color-fg)]/90"
@@ -294,14 +293,6 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
               <Plus size={15} strokeWidth={2.25} />
             </span>
             添加
-          </button>
-          <button
-            type="button"
-            className="flex h-11 w-11 items-center justify-center text-[var(--color-fg)]/85"
-            aria-label="管理清单"
-            onClick={() => go({ kind: 'module', id: 'lists' })}
-          >
-            <Settings2 size={20} strokeWidth={1.75} />
           </button>
         </div>
       </aside>

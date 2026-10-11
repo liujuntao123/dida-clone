@@ -87,15 +87,15 @@ function TaskGroupCard({
     <div className="overflow-hidden rounded-2xl bg-[var(--color-card)]">
       <button
         type="button"
-        className="flex w-full min-h-11 items-center justify-between px-4 py-3"
+        className="flex w-full min-h-12 items-center justify-between px-4 py-2.5"
         onClick={toggle}
       >
-        <span className={cn('text-[15px] font-medium', muted ? 'text-[var(--color-muted)]' : 'text-[var(--color-fg)]')}>
+        <span className={cn('text-[15px] font-semibold', muted ? 'text-[var(--color-muted)]' : 'text-[var(--color-fg)]')}>
           {group.title}
         </span>
-        <span className="flex items-center gap-1.5 text-sm text-[var(--color-muted)]">
-          {group.tasks.length}
-          <ChevronDown size={16} className={cn('transition', !isOpen && '-rotate-90')} />
+        <span className="flex items-center gap-1 text-[13px] text-[var(--color-muted)]">
+          <span className="tnum">{group.tasks.length}</span>
+          <ChevronDown size={15} strokeWidth={2} className={cn('transition-transform duration-200', !isOpen && '-rotate-90')} />
         </span>
       </button>
       {isOpen && (
@@ -192,10 +192,13 @@ export function TaskListPanel() {
     )
 
   const emptyBody = completedTasks.length === 0 && (
-    <div className="flex flex-col items-center justify-center gap-2 px-6 py-16 text-center">
-      <p className="text-base text-[var(--color-fg)]/80">暂无任务</p>
-      <p className="text-sm text-[var(--color-muted)] md:hidden">点右下角 + 添加一件事</p>
-      <p className="hidden text-sm text-[var(--color-muted)] md:block">在上方输入框添加一件事</p>
+    <div className="flex flex-col items-center justify-center gap-2 px-6 py-20 text-center">
+      <div className="mb-1 flex h-16 w-16 items-center justify-center rounded-3xl bg-[var(--color-card)]">
+        <span className="text-2xl">🎉</span>
+      </div>
+      <p className="text-[15px] font-medium text-[var(--color-fg)]/90">一切清朗，无待办事项</p>
+      <p className="text-[13px] text-[var(--color-muted)] md:hidden">点右下角 + 添加一件事</p>
+      <p className="hidden text-[13px] text-[var(--color-muted)] md:block">在上方输入框添加一件事</p>
     </div>
   )
 

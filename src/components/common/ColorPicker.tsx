@@ -1,14 +1,5 @@
 import { cn } from '../../lib/cn'
-
-/** 调色板：红/橙/黄/黄绿/绿/蓝（同参考图一行排布），附加「无颜色」与自定义取色。 */
-const PALETTE = [
-  '#ee5252',
-  '#f2913d',
-  '#f7c948',
-  '#cddc39',
-  '#4cd07d',
-  '#4d8ef7',
-] as const
+import { PALETTE } from '../../lib/constants'
 
 /**
  * TickTick 风格颜色选择行：无颜色（斜杠圆）+ 色板 + 自定义（彩虹环）。
@@ -26,7 +17,7 @@ export function ColorPicker({
   const isPreset = (PALETTE as readonly string[]).includes(value)
   const custom = value && !isPreset ? value : '#4d8ef7'
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-3">
       {allowNone && (
         <button
           type="button"
@@ -34,11 +25,11 @@ export function ColorPicker({
           aria-pressed={value === ''}
           onClick={() => onChange('')}
           className={cn(
-            'relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border-2',
-            value === '' ? 'border-[var(--color-fg)]/70' : 'border-[var(--color-muted)]/60',
+            'relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border-2 transition',
+            value === '' ? 'border-[var(--color-fg)]/70' : 'border-[var(--color-muted)]/50',
           )}
         >
-          <span className="absolute h-0.5 w-[120%] rotate-45 bg-[var(--color-muted)]" />
+          <span className="absolute h-0.5 w-[125%] rotate-45 bg-[var(--color-muted)]" />
         </button>
       )}
       {PALETTE.map((c) => (
@@ -49,8 +40,8 @@ export function ColorPicker({
           aria-pressed={value === c}
           onClick={() => onChange(c)}
           className={cn(
-            'h-8 w-8 rounded-full transition',
-            value === c && 'ring-2 ring-[var(--color-fg)]/60 ring-offset-2 ring-offset-[var(--color-card)]',
+            'flex h-9 w-9 items-center justify-center rounded-full transition active:scale-90',
+            value === c && 'ring-2 ring-[var(--color-fg)]/55 ring-offset-2 ring-offset-[var(--color-card)]',
           )}
           style={{ background: c }}
         />
@@ -59,12 +50,12 @@ export function ColorPicker({
       <label
         aria-label="自定义颜色"
         className={cn(
-          'relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-full p-[2.5px]',
+          'relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-full p-[3px] transition active:scale-90',
           value && !isPreset
-            ? 'ring-2 ring-[var(--color-fg)]/60 ring-offset-2 ring-offset-[var(--color-card)]'
+            ? 'ring-2 ring-[var(--color-fg)]/55 ring-offset-2 ring-offset-[var(--color-card)]'
             : '',
         )}
-        style={{ background: 'conic-gradient(#ee5252,#f2913d,#f7c948,#4cd07d,#4d8ef7,#8b5cf6,#ec4899,#ee5252)' }}
+        style={{ background: 'conic-gradient(#ee5252,#f2913d,#f7c948,#4cd07d,#4d8ef7,#9a6ef7,#f269b4,#ee5252)' }}
       >
         <span className="flex h-full w-full items-center justify-center rounded-full bg-[var(--color-card)] p-[3px]">
           <span className="h-full w-full rounded-full" style={{ background: custom }} />

@@ -13,6 +13,20 @@ export const LIST_COLORS = [
 
 export const TAG_COLORS = LIST_COLORS
 
+/**
+ * 清单 / 标签新建页共用的调色板（与 ColorPicker 一致）。
+ * 新建时的默认取色也来自这里，保证默认色一定命中色板。
+ */
+export const PALETTE = [
+  '#ee5252',
+  '#f2913d',
+  '#f7c948',
+  '#4cd07d',
+  '#4d8ef7',
+  '#9a6ef7',
+  '#f269b4',
+] as const
+
 export const PRIORITY_LABELS: Record<Priority, string> = {
   0: '无',
   1: '低',

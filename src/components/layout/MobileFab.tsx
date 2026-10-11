@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Plus } from 'lucide-react'
+import { CalendarDays, Plus } from 'lucide-react'
 import { Drawer } from 'vaul'
 import { useAppStore } from '../../store/useAppStore'
 import { dayjs, parseNaturalDate } from '../../lib/dates'
@@ -81,11 +81,17 @@ export function MobileFab() {
   const quickAdd = useAppStore((s) => s.quickAdd)
   const sidebarOpen = useAppStore((s) => s.sidebarOpen)
   const activeView = useAppStore((s) => s.activeView)
+  const lists = useAppStore((s) => s.lists)
   // 搜索 / 清单 / 标签 / 过滤器 / 设置等工具页不显示 FAB（参考滴答清单）
   const fabHidden =
     sidebarOpen ||
     (activeView.kind === 'module' &&
       ['settings', 'search', 'lists', 'tags', 'filters'].includes(activeView.id))
+  // 快速添加的目标清单：清单视图进该清单，其余进收集箱（与 quickAdd 逻辑一致）
+  const targetList =
+    activeView.kind === 'list'
+      ? lists.find((l) => l.id === activeView.id)
+      : lists.find((l) => l.isInbox)
   const [open, setOpen] = useState(false)
   const [value, setValue] = useState('')
   const [vw, setVw] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 390))
@@ -231,18 +237,18 @@ export function MobileFab() {
         <Drawer.Portal>
           <Drawer.Overlay className="fixed inset-0 z-50 bg-black/50 md:hidden" />
           <Drawer.Content
-            className="fixed inset-x-0 bottom-0 z-50 flex max-h-[55vh] flex-col rounded-t-2xl bg-[var(--color-card)] outline-none md:hidden"
-            style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom, 0px))' }}
+            className="fixed inset-x-0 bottom-0 z-50 flex max-h-[60vh] flex-col rounded-t-[20px] bg-[var(--color-card)] outline-none md:hidden"
+            style={{ paddingBottom: 'max(10px, env(safe-area-inset-bottom, 0px))' }}
             onOpenAutoFocus={(e) => {
               e.preventDefault()
               requestAnimationFrame(() => inputRef.current?.focus())
             }}
           >
-            <div className="mx-auto mt-2 mb-1 h-1 w-9 shrink-0 rounded-full bg-[var(--color-muted)]/40" />
+            <div className="mx-auto mt-2.5 mb-1 h-1 w-9 shrink-0 rounded-full bg-[var(--color-muted)]/35" />
             <Drawer.Title className="sr-only">快速添加</Drawer.Title>
             <Drawer.Description className="sr-only">输入要做的事</Drawer.Description>
             <form
-              className="flex flex-col gap-1 px-4 pb-3 pt-1"
+              className="flex min-w-0 flex-col px-4 pb-2 pt-1"
               onSubmit={(e) => {
                 e.preventDefault()
                 submit()
@@ -253,23 +259,34 @@ export function MobileFab() {
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
                 placeholder="准备做什么？试试「明天 14:00 开会」"
-                className="accent-caret min-h-12 w-full bg-transparent text-[17px] text-[var(--color-fg)] outline-none placeholder:text-[var(--color-muted)]"
+                enterKeyHint="done"
+                className="accent-caret min-h-12 w-full bg-transparent text-[17px] font-medium text-[var(--color-fg)] outline-none placeholder:font-normal placeholder:text-[var(--color-muted)]"
               />
               {preview?.dueAt && (
-                <div className="text-xs text-brand">
-                  识别日期：{dayjs(preview.dueAt).format('M月D日 HH:mm')}
+                <div className="flex flex-wrap items-center gap-1.5 pb-1 text-xs">
+                  <span className="inline-flex items-center gap-1 rounded-lg bg-brand/10 px-2 py-1 font-medium text-brand">
+                    <CalendarDays size={13} strokeWidth={2} />
+                    识别日期：{dayjs(preview.dueAt).format('M月D日 HH:mm')}
+                  </span>
                   {preview.cleanedTitle !== value.trim() && (
-                    <span className="text-[var(--color-muted)]"> · 标题「{preview.cleanedTitle}」</span>
+                    <span className="text-[var(--color-muted)]">标题「{preview.cleanedTitle}」</span>
                   )}
                 </div>
               )}
-              <div className="mt-1 flex items-center justify-end">
+              <div className="mt-1.5 flex items-center justify-between gap-3">
+                <span className="flex min-w-0 items-center gap-1.5 text-[13px] text-[var(--color-muted)]">
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ background: targetList?.color ?? 'var(--color-muted)' }}
+                  />
+                  <span className="truncate">添加到「{targetList?.name ?? '收集箱'}」</span>
+                </span>
                 <button
                   type="submit"
                   disabled={!value.trim()}
-                  className="flex h-10 items-center gap-1 rounded-xl bg-brand px-4 text-sm font-medium text-white disabled:opacity-40"
+                  className="btn-primary h-10 shrink-0 px-5 text-[15px]"
                 >
-                  <Plus size={16} strokeWidth={2.5} />
+                  <Plus size={17} strokeWidth={2.5} />
                   添加
                 </button>
               </div>

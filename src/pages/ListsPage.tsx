@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { Check, Folder, Inbox, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { Folder, Inbox, Pencil, Plus } from 'lucide-react'
 import { PageHeader } from '../components/common/PageHeader'
-import { ColorPicker } from '../components/common/ColorPicker'
+import { EntityFormPage } from '../components/common/EntityFormPage'
 import { useAppStore } from '../store/useAppStore'
 import { useToastStore } from '../store/useToastStore'
 import { useBackHandler } from '../lib/backNav'
-import { LIST_COLORS } from '../lib/constants'
+import { PALETTE } from '../lib/constants'
 import { cn } from '../lib/cn'
 import type { TaskList } from '../types'
 
@@ -24,7 +24,7 @@ export function ListsPage() {
   const [mode, setMode] = useState<'list' | 'form'>('list')
   const [editing, setEditing] = useState<TaskList | null>(null)
   const [name, setName] = useState('')
-  const [color, setColor] = useState<string>(LIST_COLORS[0])
+  const [color, setColor] = useState<string>(PALETTE[0])
   // Android 返回键：清单表单页先回到清单列表，而不是直接退出模块页
   useBackHandler(mode === 'form', () => {
     setMode('list')
@@ -37,7 +37,7 @@ export function ListsPage() {
   const openAdd = () => {
     setEditing(null)
     setName('')
-    setColor(LIST_COLORS[lists.length % LIST_COLORS.length])
+    setColor(PALETTE[lists.length % PALETTE.length])
     setMode('form')
   }
 
@@ -63,71 +63,30 @@ export function ListsPage() {
 
   if (mode === 'form') {
     return (
-      <div className="flex h-full min-w-0 flex-1 flex-col bg-[var(--color-surface-2)]">
-        <PageHeader
-          title={editing ? '编辑清单' : '添加清单'}
-          onBack={() => setMode('list')}
-          right={
-            <>
-              {!editing?.isInbox && editing && (
-                <button
-                  type="button"
-                  aria-label="删除清单"
-                  className="flex min-h-11 min-w-11 items-center justify-center text-red-500 active:opacity-70"
-                  onClick={() => {
-                    if (!editing) return
-                    if (!window.confirm(`删除清单「${editing.name}」？其中任务将移入收集箱。`)) return
-                    deleteList(editing.id)
-                    showToast('清单已删除')
-                    setMode('list')
-                  }}
-                >
-                  <Trash2 size={20} />
-                </button>
-              )}
-              <button
-                type="button"
-                aria-label="保存"
-                disabled={!name.trim()}
-                className="flex min-h-11 min-w-11 items-center justify-center text-[var(--color-fg)] active:opacity-70 disabled:opacity-30"
-                onClick={save}
-              >
-                <Check size={24} />
-              </button>
-            </>
-          }
-        />
-        <div className="flex-1 overflow-y-auto p-3">
-          <div className="flex min-h-14 items-center gap-3 rounded-2xl bg-[var(--color-card)] px-4">
-            <Folder size={20} className="shrink-0 text-[var(--color-muted)]" />
-            <input
-              autoFocus
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') save()
-              }}
-              placeholder="名称"
-              className="accent-caret min-h-14 w-full bg-transparent text-[16px] outline-none placeholder:text-[var(--color-muted)]"
-            />
-            {name && (
-              <button
-                type="button"
-                aria-label="清空名称"
-                onClick={() => setName('')}
-                className="text-[var(--color-muted)]"
-              >
-                <X size={18} />
-              </button>
-            )}
-          </div>
-
-          <div className="mt-3 rounded-2xl bg-[var(--color-card)] p-4">
-            <div className="mb-4 text-[15px] font-medium">颜色</div>
-            <ColorPicker value={color} onChange={setColor} allowNone={false} />
-          </div>
-        </div>
-      </div>
+      <EntityFormPage
+        title={editing ? '编辑清单' : '添加清单'}
+        icon={<Folder size={19} strokeWidth={2} />}
+        iconColor={color}
+        name={name}
+        onNameChange={setName}
+        color={color}
+        onColorChange={setColor}
+        canSave={!!name.trim()}
+        onSave={save}
+        onBack={() => setMode('list')}
+        deleteLabel={editing && !editing.isInbox ? '删除清单' : undefined}
+        onDelete={
+          editing && !editing.isInbox
+            ? () => {
+                if (!editing) return
+                if (!window.confirm(`删除清单「${editing.name}」？其中任务将移入收集箱。`)) return
+                deleteList(editing.id)
+                showToast('清单已删除')
+                setMode('list')
+              }
+            : undefined
+        }
+      />
     )
   }
 
@@ -145,9 +104,9 @@ export function ListsPage() {
             type="button"
             aria-label="添加清单"
             onClick={openAdd}
-            className="flex min-h-11 min-w-11 items-center justify-center text-[var(--color-fg)] active:opacity-70"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-[var(--color-fg)] active:bg-[var(--color-surface-2)]"
           >
-            <Plus size={22} />
+            <Plus size={22} strokeWidth={2} />
           </button>
         }
       />
@@ -156,42 +115,43 @@ export function ListsPage() {
           {inbox && (
             <button
               type="button"
-              className="flex min-h-12 w-full items-center gap-3 px-4 text-left active:bg-[var(--color-surface-2)]"
+              className="flex min-h-[52px] w-full items-center gap-3 px-4 text-left active:bg-[var(--color-surface-2)]"
               onClick={() => setActiveView({ kind: 'smart', id: 'inbox' })}
             >
-              <Inbox size={18} className="shrink-0 text-brand" />
+              <Inbox size={19} strokeWidth={2} className="shrink-0 text-brand" />
               <span className="min-w-0 flex-1 truncate text-[15px]">收集箱</span>
-              <span className="text-sm text-[var(--color-muted)]">{todoCount(inbox.id) || ''}</span>
+              <span className="tnum text-[13px] text-[var(--color-muted)]">{todoCount(inbox.id) || ''}</span>
             </button>
           )}
           {customLists.map((l, i) => (
-            <div
-              key={l.id}
-              className={cn(
-                'flex items-center pr-1',
-                (i > 0 || inbox) && 'border-t border-[var(--color-border)]',
-              )}
-            >
+            <div key={l.id} className={cn('flex items-center pr-1.5', (i > 0 || inbox) && 'row-divider')}>
               <button
                 type="button"
-                className="flex min-h-12 flex-1 items-center gap-3 px-4 text-left active:bg-[var(--color-surface-2)]"
+                className="flex min-h-[52px] flex-1 items-center gap-3 px-4 text-left active:bg-[var(--color-surface-2)]"
                 onClick={() => setActiveView({ kind: 'list', id: l.id })}
               >
-                <Folder size={18} style={{ color: l.color }} className="shrink-0" />
+                <Folder size={19} strokeWidth={2} style={{ color: l.color }} className="shrink-0" />
                 <span className="min-w-0 flex-1 truncate text-[15px]">{l.name}</span>
-                <span className="text-sm text-[var(--color-muted)]">{todoCount(l.id) || ''}</span>
+                <span className="tnum text-[13px] text-[var(--color-muted)]">{todoCount(l.id) || ''}</span>
               </button>
               <button
                 type="button"
                 aria-label={`编辑清单 ${l.name}`}
-                className="flex min-h-11 min-w-11 items-center justify-center text-[var(--color-muted)] active:opacity-70"
+                className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-[var(--color-muted)] active:bg-[var(--color-surface-2)]"
                 onClick={() => openEdit(l)}
               >
-                <Pencil size={16} />
+                <Pencil size={16} strokeWidth={1.75} />
               </button>
             </div>
           ))}
         </div>
+
+        {customLists.length === 0 && (
+          <div className="flex flex-col items-center gap-1.5 px-6 py-14 text-center">
+            <Folder size={26} strokeWidth={1.5} className="text-[var(--color-muted)]/60" />
+            <p className="text-[13px] text-[var(--color-muted)]">还没有自定义清单，点右上角 + 新建</p>
+          </div>
+        )}
       </div>
     </div>
   )

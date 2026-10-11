@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Check, Pencil, Plus, Tag as TagIcon, Trash2, X } from 'lucide-react'
+import { Pencil, Plus, Tag as TagIcon } from 'lucide-react'
 import { PageHeader } from '../components/common/PageHeader'
-import { ColorPicker } from '../components/common/ColorPicker'
+import { EntityFormPage } from '../components/common/EntityFormPage'
 import { useAppStore } from '../store/useAppStore'
 import { useToastStore } from '../store/useToastStore'
 import { useBackHandler } from '../lib/backNav'
+import { PALETTE } from '../lib/constants'
 import { cn } from '../lib/cn'
 import type { Tag } from '../types'
 
@@ -13,7 +14,7 @@ const NO_COLOR = '#9ca3af'
 
 /**
  * 标签管理页：列表 + 新建/编辑表单（参考滴答清单「添加标签」页：
- * X 关闭 / 标题 / ✓ 保存，名称卡片 + 颜色卡片）。
+ * 返回关闭 / 居中标题 / ✓ 保存，名称卡片 + 颜色卡片 + 删除行）。
  */
 export function TagsPage() {
   const tags = useAppStore((s) => s.tags)
@@ -29,7 +30,7 @@ export function TagsPage() {
   const [mode, setMode] = useState<'list' | 'form'>('list')
   const [editing, setEditing] = useState<Tag | null>(null)
   const [name, setName] = useState('')
-  const [color, setColor] = useState<string>('#4d8ef7')
+  const [color, setColor] = useState<string>(PALETTE[4])
   // Android 返回键：标签表单页先回到标签列表
   useBackHandler(mode === 'form', () => {
     setMode('list')
@@ -42,7 +43,7 @@ export function TagsPage() {
   const openAdd = () => {
     setEditing(null)
     setName('')
-    setColor('#4d8ef7')
+    setColor(PALETTE[tags.length % PALETTE.length])
     setMode('form')
   }
 
@@ -74,76 +75,30 @@ export function TagsPage() {
 
   if (mode === 'form') {
     return (
-      <div className="flex h-full min-w-0 flex-1 flex-col bg-[var(--color-surface-2)]">
-        <PageHeader
-          title={editing ? '编辑标签' : '添加标签'}
-          onBack={() => setMode('list')}
-          right={
-            <>
-              {editing && (
-                <button
-                  type="button"
-                  aria-label="删除标签"
-                  className="flex min-h-11 min-w-11 items-center justify-center text-red-500 active:opacity-70"
-                  onClick={() => {
-                    if (!editing) return
-                    if (!window.confirm(`删除标签「${editing.name}」？将从所有任务移除。`)) return
-                    deleteTag(editing.id)
-                    showToast('标签已删除')
-                    setMode('list')
-                  }}
-                >
-                  <Trash2 size={20} />
-                </button>
-              )}
-              <button
-                type="button"
-                aria-label="保存"
-                disabled={!name.trim()}
-                className="flex min-h-11 min-w-11 items-center justify-center text-[var(--color-fg)] active:opacity-70 disabled:opacity-30"
-                onClick={save}
-              >
-                <Check size={24} />
-              </button>
-            </>
-          }
-        />
-        <div className="flex-1 overflow-y-auto p-3">
-          <div className="flex min-h-14 items-center gap-3 rounded-2xl bg-[var(--color-card)] px-4">
-            <TagIcon size={20} className="shrink-0 text-[var(--color-muted)]" />
-            <input
-              autoFocus
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') save()
-              }}
-              placeholder="名称"
-              className="accent-caret min-h-14 w-full bg-transparent text-[16px] outline-none placeholder:text-[var(--color-muted)]"
-            />
-            {name && (
-              <button
-                type="button"
-                aria-label="清空名称"
-                onClick={() => setName('')}
-                className="text-[var(--color-muted)]"
-              >
-                <X size={18} />
-              </button>
-            )}
-          </div>
-
-          <div className="mt-3 rounded-2xl bg-[var(--color-card)] p-4">
-            <div className="mb-4 text-[15px] font-medium">颜色</div>
-            <ColorPicker value={color} onChange={setColor} />
-          </div>
-
-          <div className="mt-3 flex min-h-12 items-center justify-between rounded-2xl bg-[var(--color-card)] px-4 text-[15px] text-[var(--color-muted)]">
-            <span>上级标签</span>
-            <span className="text-xs">暂不支持</span>
-          </div>
-        </div>
-      </div>
+      <EntityFormPage
+        title={editing ? '编辑标签' : '添加标签'}
+        icon={<TagIcon size={18} strokeWidth={2} />}
+        iconColor={color || NO_COLOR}
+        name={name}
+        onNameChange={setName}
+        color={color}
+        onColorChange={setColor}
+        canSave={!!name.trim()}
+        onSave={save}
+        onBack={() => setMode('list')}
+        deleteLabel={editing ? '删除标签' : undefined}
+        onDelete={
+          editing
+            ? () => {
+                if (!editing) return
+                if (!window.confirm(`删除标签「${editing.name}」？将从所有任务移除。`)) return
+                deleteTag(editing.id)
+                showToast('标签已删除')
+                setMode('list')
+              }
+            : undefined
+        }
+      />
     )
   }
 
@@ -158,41 +113,38 @@ export function TagsPage() {
             type="button"
             aria-label="添加标签"
             onClick={openAdd}
-            className="flex min-h-11 min-w-11 items-center justify-center text-[var(--color-fg)] active:opacity-70"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-[var(--color-fg)] active:bg-[var(--color-surface-2)]"
           >
-            <Plus size={22} />
+            <Plus size={22} strokeWidth={2} />
           </button>
         }
       />
       <div className="flex-1 overflow-y-auto p-3">
         {tags.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 px-6 py-16 text-center">
-            <TagIcon size={28} className="text-[var(--color-muted)]" />
-            <p className="text-sm text-[var(--color-muted)]">暂无标签，点右上角 + 新建</p>
+          <div className="flex flex-col items-center gap-1.5 px-6 py-14 text-center">
+            <TagIcon size={26} strokeWidth={1.5} className="text-[var(--color-muted)]/60" />
+            <p className="text-[13px] text-[var(--color-muted)]">暂无标签，点右上角 + 新建</p>
           </div>
         ) : (
           <div className="overflow-hidden rounded-2xl bg-[var(--color-card)]">
             {tags.map((t, i) => (
-              <div
-                key={t.id}
-                className={cn('flex items-center pr-1', i > 0 && 'border-t border-[var(--color-border)]')}
-              >
+              <div key={t.id} className={cn('flex items-center pr-1.5', i > 0 && 'row-divider')}>
                 <button
                   type="button"
-                  className="flex min-h-12 flex-1 items-center gap-3 px-4 text-left active:bg-[var(--color-surface-2)]"
+                  className="flex min-h-[52px] flex-1 items-center gap-3 px-4 text-left active:bg-[var(--color-surface-2)]"
                   onClick={() => setActiveView({ kind: 'tag', id: t.id })}
                 >
-                  <TagIcon size={18} style={{ color: t.color }} className="shrink-0" />
+                  <TagIcon size={18} strokeWidth={2} style={{ color: t.color }} className="shrink-0" />
                   <span className="min-w-0 flex-1 truncate text-[15px]">{t.name}</span>
-                  <span className="text-sm text-[var(--color-muted)]">{todoCount(t.id) || ''}</span>
+                  <span className="tnum text-[13px] text-[var(--color-muted)]">{todoCount(t.id) || ''}</span>
                 </button>
                 <button
                   type="button"
                   aria-label={`编辑标签 ${t.name}`}
-                  className="flex min-h-11 min-w-11 items-center justify-center text-[var(--color-muted)] active:opacity-70"
+                  className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-[var(--color-muted)] active:bg-[var(--color-surface-2)]"
                   onClick={() => openEdit(t)}
                 >
-                  <Pencil size={16} />
+                  <Pencil size={16} strokeWidth={1.75} />
                 </button>
               </div>
             ))}

@@ -42,3 +42,6 @@ android/keystore.properties
 android/app/keystore.properties
 *.apk
 *.aab
+
+# 视觉走查截图（开发期产物，不入库）
+screenshots/walkthrough/

@@ -16,12 +16,18 @@
     system-ui, sans-serif;
 }
 
+/* 分隔线比 border 更轻，用于卡片内行与行之间（浅色默认值；深色在 .dark 覆盖） */
+:root {
+  --color-separator: #ececf0;
+}
+
 .dark {
   --color-surface: #000000;
   --color-surface-2: #000000;
   --color-card: #1c1c1e;
   --color-border: #2c2c2e;
-  --color-muted: #8e8e93;
+  --color-separator: #2a2a2c;
+  --color-muted: #98989d;
   --color-fg: #f5f5f7;
   --color-brand: #FF7A45;
   --color-brand-hover: #F18F53;
@@ -41,8 +47,12 @@ body {
   font-family: var(--font-sans);
   background: var(--color-surface-2);
   color: var(--color-fg);
+  font-size: 15px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%;
   overscroll-behavior-y: none;
   /* 禁用浏览器「横向滑动 = 前进/后退」手势，避免与页面内右滑开菜单冲突 */
   overscroll-behavior-x: none;
@@ -56,11 +66,20 @@ button, a {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* 键盘导航焦点环（触摸点击不触发） */
+/* 键盘导航焦点环（触摸点击不触发）。
+   文本输入类控件不画 outline —— 输入态由光标颜色和容器卡片表达，
+   否则 autoFocus 的输入框会顶着一个溢出卡片的橙色方框，非常难看。 */
 :focus-visible {
   outline: 2px solid color-mix(in srgb, var(--color-brand) 65%, transparent);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[contenteditable]:focus-visible {
+  outline: none;
 }
 
 /* 品牌色文本选区 */
@@ -219,10 +238,55 @@ textarea:focus {
 /* Shared focus for form controls */
 .field-focus {
   outline: none;
+  transition: box-shadow 0.15s ease;
 }
 .field-focus:focus {
-  border-color: var(--color-brand);
-  box-shadow: 0 0 0 1px var(--color-brand);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-brand) 70%, transparent);
+}
+
+/* 主按钮：品牌色实底；禁用时降饱和而不是蒙一层灰（避免深色下发闷） */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  background: var(--color-brand);
+  color: #fff;
+  font-weight: 500;
+  border-radius: 0.75rem;
+  transition: filter 0.15s ease, transform 0.1s ease;
+}
+.btn-primary:hover {
+  filter: brightness(1.05);
+}
+.btn-primary:active {
+  filter: brightness(0.95);
+  transform: scale(0.98);
+}
+.btn-primary:disabled {
+  background: color-mix(in srgb, var(--color-brand) 26%, var(--color-card));
+  color: color-mix(in srgb, #fff 60%, transparent);
+  pointer-events: none;
+}
+
+/* 卡片内行分隔：左端让开图标列的 iOS 式内嵌 hairline */
+.row-divider {
+  position: relative;
+}
+.row-divider::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 3.75rem;
+  height: 1px;
+  background: var(--color-separator);
+}
+
+/* 全宽 hairline（设置页行分隔），配合 absolute inset-x-* 使用 */
+.row-divider-line {
+  height: 1px;
+  background: var(--color-separator);
 }
 
 /* ---------- 过场动画 ---------- */

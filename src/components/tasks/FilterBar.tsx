@@ -18,13 +18,13 @@ export function FilterBar() {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs">
-      <label className="flex items-center gap-1 text-[var(--color-muted)]">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs">
+      <label className="flex items-center gap-1.5 text-[var(--color-muted)]">
         排序
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as SortBy)}
-          className="rounded-lg bg-[var(--color-surface-2)] px-2 py-1.5 outline-none"
+          className="min-h-8 rounded-lg bg-[var(--color-surface-2)] px-2 py-1 text-xs outline-none"
         >
           <option value="due">日期</option>
           <option value="priority">优先级</option>
@@ -41,7 +41,7 @@ export function FilterBar() {
           onClick={() => togglePriority(p)}
           className={`min-h-8 rounded-full px-2.5 py-1 transition ${
             filter.priorities.includes(p)
-              ? 'bg-brand/15 text-brand'
+              ? 'bg-brand/15 font-medium text-brand'
               : 'bg-[var(--color-surface-2)] text-[var(--color-muted)]'
           }`}
         >
@@ -52,7 +52,7 @@ export function FilterBar() {
       <select
         value={filter.listIds[0] ?? ''}
         onChange={(e) => setFilter({ listIds: e.target.value ? [e.target.value] : [] })}
-        className="rounded-lg bg-[var(--color-surface-2)] px-2 py-1.5 outline-none"
+        className="min-h-8 rounded-lg bg-[var(--color-surface-2)] px-2 py-1 text-xs outline-none"
       >
         <option value="">全部清单</option>
         {lists.map((l) => (
@@ -63,7 +63,7 @@ export function FilterBar() {
       <select
         value={filter.tagIds[0] ?? ''}
         onChange={(e) => setFilter({ tagIds: e.target.value ? [e.target.value] : [] })}
-        className="rounded-lg bg-[var(--color-surface-2)] px-2 py-1.5 outline-none"
+        className="min-h-8 rounded-lg bg-[var(--color-surface-2)] px-2 py-1 text-xs outline-none"
       >
         <option value="">全部标签</option>
         {tags.map((t) => (
@@ -74,7 +74,7 @@ export function FilterBar() {
       {(filter.priorities.length > 0 || filter.listIds.length > 0 || filter.tagIds.length > 0 || filter.query) && (
         <button
           type="button"
-          className="min-h-8 text-brand hover:text-brand-hover"
+          className="min-h-8 font-medium text-brand hover:text-brand-hover"
           onClick={() => setFilter({ priorities: [], listIds: [], tagIds: [], query: '' })}
         >
           清除筛选

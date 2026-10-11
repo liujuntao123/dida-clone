@@ -153,6 +153,7 @@ textarea:focus {
   top: 0;
   height: 100%;
   display: flex;
+  align-items: center;
   z-index: 0;
 }
 .swipeable-list-item__leading-actions {
@@ -160,10 +161,8 @@ textarea:focus {
 }
 .swipeable-list-item__trailing-actions {
   right: 0;
-}
-.swipe-action {
-  display: flex;
-  align-items: stretch;
+  gap: 8px;
+  padding-right: 12px;
 }
 @media (prefers-reduced-motion: reduce) {
   .swipeable-list-item__content.swipe-row-anim {

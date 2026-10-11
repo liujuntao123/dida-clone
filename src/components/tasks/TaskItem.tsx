@@ -23,10 +23,11 @@ import type { Task } from '../../types'
 /**
  * 左右滑操作（SwipeRow 自研实现）：
  * 拖过 ~64px 或一记快扫即呼出按钮，点按按钮才触发（fullSwipe 永不开启）。
- * 只在右侧呼出，纯图标按钮固定宽度：移动 / 删除 2×52 = 104px。
+ * 右侧呼出两个圆形图标按钮：移动 / 删除（44px 圆 + 8px 间距 + 12px 右边距）。
  */
-const TRAIL_ACTION_W = 52
-const TRAILING_W = TRAIL_ACTION_W * 2 // 移动 / 删除
+const TRAIL_ACTION_W = 44
+/** 呼出宽度 = 两按钮 + gap + 右内边距 + 左侧 4px 留白 */
+const TRAILING_W = TRAIL_ACTION_W * 2 + 8 + 12 + 4
 
 export function TaskItem({
   task,
@@ -133,7 +134,7 @@ export function TaskItem({
 
   const actionBtnCls = (bg: string) =>
     cn(
-      'swipe-action swipe-action__trailing flex h-full w-[52px] items-center justify-center text-white active:brightness-95',
+      'swipe-action swipe-action__trailing flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition active:scale-90',
       bg,
     )
 

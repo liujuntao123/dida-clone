@@ -1,7 +1,6 @@
 import { AppLayout } from './components/layout/AppLayout'
 import { TaskListPanel } from './components/tasks/TaskList'
 import { CalendarView } from './components/calendar/CalendarView'
-import { BoardView } from './components/board/BoardView'
 import { QuadrantView } from './components/matrix/QuadrantView'
 import { SettingsPage } from './pages/SettingsPage'
 import { SearchPage } from './pages/SearchPage'
@@ -23,9 +22,6 @@ function MainContent() {
     switch (activeView.id) {
       case 'calendar':
         content = <CalendarView />
-        break
-      case 'board':
-        content = <BoardView />
         break
       case 'quadrant':
         content = <QuadrantView />

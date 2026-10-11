@@ -45,6 +45,7 @@ E2E 的 headless 特殊性（改脚本/环境时注意）：
 - **react-swipeable-list**：其 content 容器是 `display:flex`，任务行必须 `w-full` 撑满，否则行右侧出现「点不中」死区；`fullSwipe` 保持关闭——左滑只呼出按钮、点按才触发，不许改回「滑动即删除」。**呼出阈值 = 操作按钮总宽**（拖动超过 actions 总宽才保持展开），按钮数量/宽度要克制（现状：尾部 3×56px ≈ 168px、头部 2×64px），加按钮前先想滑动手感。
 - **右滑开菜单手势**（`AppLayout.tsx`）：热点元素靠 `SWIPE_HOTSPOT_SELECTOR` 排除。新增可交互/可拖拽组件时，要么命中既有选择器，要么给元素加 `data-no-swipe-menu`。
 - **动画**：统一用 `src/index.css` 里的 `animate-fade-in / animate-slide-up / animate-view-in`，新增动画必须兼顾 `prefers-reduced-motion`。
+- **dnd-kit 拖拽**：触端拖拽把手要加 `touch-none`，且自定义 `onPointerDown` 会覆盖 `{...listeners}` 里的同名 handler——需仿照子任务行的写法手动回调 `listeners?.onPointerDown?.(e)`；`DragOverlay` 会继承被拖节点（常是 24px 把手）的尺寸，children 必须显式设宽。
 - **移动端安全区**：顶栏 / 抽屉 / 设置 / 看板等自绘头部的页面，注意 `env(safe-area-inset-*)`；触控目标 ≥ 44px。
 - 状态都在 `useAppStore`（zustand persist）；给 store 加字段时检查 `partialize`/`merge` 是否需要迁移旧 localStorage。
 

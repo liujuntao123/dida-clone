@@ -1,7 +1,9 @@
+import { useMemo, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
   PointerSensor,
+  pointerWithin,
   useDraggable,
   useDroppable,
   useSensor,
@@ -9,8 +11,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
-import { useState } from 'react'
-import { Square, CheckSquare, List } from 'lucide-react'
+import { Check, GripVertical, MoreVertical } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import type { Priority, Task } from '../../types'
 import { cn } from '../../lib/cn'
@@ -36,7 +37,7 @@ const QUADRANTS: {
     title: '重要且紧急',
     priority: 3,
     labelClass: 'text-red-400',
-    badgeClass: 'bg-red-500/90 text-white',
+    badgeClass: 'bg-red-500 text-white',
   },
   {
     id: 'q2',
@@ -44,7 +45,7 @@ const QUADRANTS: {
     title: '重要不紧急',
     priority: 2,
     labelClass: 'text-amber-400',
-    badgeClass: 'bg-amber-400/90 text-black',
+    badgeClass: 'bg-amber-400 text-black',
   },
   {
     id: 'q3',
@@ -52,7 +53,7 @@ const QUADRANTS: {
     title: '不重要但紧急',
     priority: 1,
     labelClass: 'text-sky-400',
-    badgeClass: 'bg-sky-500/90 text-white',
+    badgeClass: 'bg-sky-500 text-white',
   },
   {
     id: 'q4',
@@ -60,96 +61,147 @@ const QUADRANTS: {
     title: '不重要不紧急',
     priority: 0,
     labelClass: 'text-emerald-400',
-    badgeClass: 'bg-emerald-500/90 text-white',
+    badgeClass: 'bg-emerald-500 text-white',
   },
 ]
 
-function Card({ task, listName }: { task: Task; listName?: string }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id })
-  const setSelectedTaskId = useAppStore((s) => s.setSelectedTaskId)
+/** 折叠时每象限最多展示的任务数，超出显示「查看更多」。 */
+const COLLAPSED_COUNT = 8
+
+function QuadTaskRow({
+  task,
+  draggable,
+  onOpen,
+}: {
+  task: Task
+  draggable: boolean
+  onOpen: () => void
+}) {
   const toggleComplete = useAppStore((s) => s.toggleComplete)
-  const style = transform
-    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, opacity: isDragging ? 0.4 : 1 }
-    : { opacity: isDragging ? 0.4 : 1 }
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: task.id, disabled: !draggable })
+  const done = task.status === 'done'
+
   return (
     <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      className="mb-2 cursor-grab rounded-lg px-1 py-1.5 active:cursor-grabbing"
-      onClick={() => setSelectedTaskId(task.id)}
+      className={cn(
+        'group flex items-start gap-2 rounded-lg px-1 py-1.5 transition',
+        isDragging && 'opacity-30',
+      )}
     >
-      <div className="flex items-start gap-2">
+      <button
+        type="button"
+        aria-label={done ? '标为未完成' : '完成'}
+        onClick={() => toggleComplete(task.id)}
+        className={cn(
+          'mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border transition',
+          done
+            ? 'border-transparent bg-[var(--color-muted)]/60 text-[var(--color-card)]'
+            : 'border-[var(--color-muted)]/70 text-transparent hover:border-brand',
+        )}
+      >
+        <Check size={11} strokeWidth={3.5} />
+      </button>
+      <button
+        type="button"
+        onClick={onOpen}
+        className={cn(
+          'min-w-0 flex-1 text-left text-[14px] leading-snug',
+          done ? 'text-[var(--color-muted)]' : 'text-[var(--color-fg)]',
+        )}
+      >
+        {task.title}
+      </button>
+      {draggable && (
         <button
           type="button"
-          className="mt-0.5 text-[var(--color-muted)]"
-          onClick={(e) => {
+          ref={setNodeRef}
+          {...attributes}
+          {...listeners}
+          onPointerDown={(e) => {
             e.stopPropagation()
-            toggleComplete(task.id)
+            listeners?.onPointerDown?.(e)
           }}
+          aria-label="拖动调整优先级"
+          className="-mr-1 mt-0.5 flex h-6 w-6 shrink-0 cursor-grab touch-none items-center justify-center rounded text-[var(--color-muted)]/50 active:cursor-grabbing active:text-brand"
         >
-          {task.status === 'done' ? (
-            <CheckSquare size={18} className="text-brand" />
-          ) : (
-            <Square size={18} strokeWidth={1.75} />
-          )}
+          <GripVertical size={14} />
         </button>
-        <div className="min-w-0 flex-1">
-          <div className="text-[14px] leading-snug text-[var(--color-fg)]">{task.title}</div>
-          {listName && (
-            <div className="mt-1 flex items-center gap-1 text-[11px] text-[var(--color-muted)]">
-              <List size={11} />
-              {listName}
-            </div>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   )
 }
 
 function Quad({
   q,
-  tasks,
-  lists,
+  todoTasks,
+  doneTasks,
+  dragActive,
+  showDone,
+  onOpenTask,
 }: {
   q: (typeof QUADRANTS)[number]
-  tasks: Task[]
-  lists: { id: string; name: string }[]
+  todoTasks: Task[]
+  doneTasks: Task[]
+  dragActive: boolean
+  showDone: boolean
+  onOpenTask: (id: string) => void
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: q.id })
   const [expanded, setExpanded] = useState(false)
-  const visible = expanded ? tasks : tasks.slice(0, 4)
+
+  const doneVisible = showDone ? doneTasks : []
+  const all = [...todoTasks, ...doneVisible]
+  const visible = expanded ? all : all.slice(0, COLLAPSED_COUNT)
+  const hiddenCount = all.length - visible.length
+
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        'flex min-h-[42vw] flex-col rounded-2xl bg-[var(--color-card)] p-3 md:min-h-64',
-        isOver && 'ring-2 ring-brand/60',
+        'flex min-h-0 flex-col overflow-hidden rounded-2xl bg-[var(--color-card)] p-3 transition',
+        dragActive && !isOver && 'opacity-80',
+        isOver && dragActive && 'ring-2 ring-brand bg-brand/5',
       )}
     >
-      <div className="mb-2 flex items-center gap-2">
-        <span className={cn('flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold', q.badgeClass)}>
+      <div className="mb-2 flex shrink-0 items-center gap-2">
+        <span
+          className={cn(
+            'flex h-[22px] min-w-[22px] items-center justify-center rounded-full px-0.5 text-[11px] font-bold leading-none',
+            q.badgeClass,
+          )}
+        >
           {q.roman}
         </span>
-        <span className={cn('text-[13px] font-medium', q.labelClass)}>{q.title}</span>
+        <span className={cn('truncate text-[14px] font-medium', q.labelClass)}>{q.title}</span>
+        <span className="ml-auto shrink-0 text-xs text-[var(--color-muted)]">{todoTasks.length || ''}</span>
       </div>
+
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {tasks.length === 0 ? (
-          <div className="flex h-full min-h-16 items-center justify-center text-sm text-[var(--color-muted)]">没有任务</div>
+        {all.length === 0 ? (
+          <div className="flex h-full min-h-20 items-center justify-center text-[14px] text-[var(--color-muted)]/80">
+            没有任务
+          </div>
         ) : (
           <>
             {visible.map((t) => (
-              <Card key={t.id} task={t} listName={lists.find((l) => l.id === t.listId)?.name} />
+              <QuadTaskRow key={t.id} task={t} draggable={t.status === 'todo'} onOpen={() => onOpenTask(t.id)} />
             ))}
-            {tasks.length > 4 && !expanded && (
+            {hiddenCount > 0 && (
               <button
                 type="button"
-                className="w-full py-1 text-center text-xs text-[var(--color-muted)]"
+                className="w-full py-1.5 text-center text-xs text-[var(--color-muted)] active:opacity-70"
                 onClick={() => setExpanded(true)}
               >
-                查看更多
+                查看更多 ({hiddenCount})
+              </button>
+            )}
+            {expanded && all.length > COLLAPSED_COUNT && (
+              <button
+                type="button"
+                className="w-full py-1.5 text-center text-xs text-[var(--color-muted)] active:opacity-70"
+                onClick={() => setExpanded(false)}
+              >
+                收起
               </button>
             )}
           </>
@@ -161,58 +213,118 @@ function Quad({
 
 export function QuadrantView() {
   const tasks = useAppStore((s) => s.tasks)
-  const lists = useAppStore((s) => s.lists)
   const setTaskPriority = useAppStore((s) => s.setTaskPriority)
+  const setSelectedTaskId = useAppStore((s) => s.setSelectedTaskId)
   const [activeId, setActiveId] = useState<string | null>(null)
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [showDone, setShowDone] = useState(true)
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
 
-  const base = tasks.filter((t) => t.status === 'todo' && !t.parentId)
-  const activeTask = base.find((t) => t.id === activeId)
+  const todo = useMemo(() => tasks.filter((t) => t.status === 'todo' && !t.parentId), [tasks])
+  const done = useMemo(
+    () =>
+      tasks
+        .filter((t) => t.status === 'done' && !t.parentId)
+        .sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? '')),
+    [tasks],
+  )
+  const activeTask = [...todo, ...done].find((t) => t.id === activeId)
 
   const onDragEnd = (e: DragEndEvent) => {
     setActiveId(null)
     const { active, over } = e
     if (!over) return
-    let target = String(over.id)
-    if (!QUADRANTS.some((q) => q.id === target)) {
-      const task = base.find((t) => t.id === target)
-      if (task) {
-        const q = QUADRANTS.find((x) => x.priority === task.priority)
-        target = q?.id ?? target
-      }
+    const target = QUADRANTS.find((q) => q.id === String(over.id))
+    const task = tasks.find((t) => t.id === String(active.id))
+    if (target && task && task.priority !== target.priority) {
+      setTaskPriority(task.id, target.priority)
     }
-    const q = QUADRANTS.find((x) => x.id === target)
-    if (q) setTaskPriority(String(active.id), q.priority)
   }
 
   return (
     <div className="flex h-full flex-col bg-[var(--color-surface-2)] text-[var(--color-fg)]">
+      {/* Header：标题 + 更多菜单 */}
       <div
-        className="flex items-center justify-between px-4 pb-2"
-        style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 0px))' }}
+        className="relative flex min-h-12 shrink-0 items-center justify-between px-4"
+        style={{ paddingTop: 'max(10px, env(safe-area-inset-top, 0px))' }}
       >
         <h1 className="text-xl font-semibold">四象限</h1>
-        <span className="text-xs text-[var(--color-muted)]">拖动卡片可修改优先级</span>
+        <button
+          type="button"
+          aria-label="更多"
+          className="flex min-h-11 min-w-11 items-center justify-center text-[var(--color-fg)]/85 active:opacity-70"
+          onClick={() => setMenuOpen((v) => !v)}
+        >
+          <MoreVertical size={20} />
+        </button>
+
+        {menuOpen && (
+          <>
+            <button
+              type="button"
+              className="fixed inset-0 z-30 cursor-default"
+              aria-label="关闭菜单"
+              onClick={() => setMenuOpen(false)}
+            />
+            <div className="animate-fade-in absolute right-3 top-12 z-40 w-56 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] py-1 shadow-lg">
+              <div className="px-3 py-2 text-xs leading-relaxed text-[var(--color-muted)]">
+                拖动任务右侧的把手到其他象限，即可调整优先级。
+              </div>
+              <button
+                type="button"
+                className="flex min-h-11 w-full items-center justify-between px-3 text-left text-sm active:bg-[var(--color-surface-2)]"
+                onClick={() => setShowDone((v) => !v)}
+              >
+                显示已完成
+                <span
+                  className={cn(
+                    'relative h-5 w-9 rounded-full transition',
+                    showDone ? 'bg-brand' : 'bg-[var(--color-muted)]/40',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all',
+                      showDone ? 'left-[18px]' : 'left-0.5',
+                    )}
+                  />
+                </span>
+              </button>
+            </div>
+          </>
+        )}
       </div>
-      <div className="flex-1 overflow-auto px-2 pb-4">
+
+      {/* 全屏 2×2 */}
+      <div className="min-h-0 flex-1 px-2 pb-2">
         <DndContext
           sensors={sensors}
+          collisionDetection={pointerWithin}
           onDragStart={(e: DragStartEvent) => setActiveId(String(e.active.id))}
           onDragEnd={onDragEnd}
+          onDragCancel={() => setActiveId(null)}
         >
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid h-full min-h-0 grid-cols-2 grid-rows-2 gap-2">
             {QUADRANTS.map((q) => (
               <Quad
                 key={q.id}
                 q={q}
-                tasks={base.filter((t) => t.priority === q.priority)}
-                lists={lists}
+                todoTasks={todo.filter((t) => t.priority === q.priority)}
+                doneTasks={done.filter((t) => t.priority === q.priority)}
+                dragActive={!!activeId}
+                showDone={showDone}
+                onOpenTask={setSelectedTaskId}
               />
             ))}
           </div>
-          <DragOverlay>
+          <DragOverlay dropAnimation={null}>
             {activeTask ? (
-              <div className="rounded-lg bg-[var(--color-card)] px-3 py-2 text-sm shadow-lg">{activeTask.title}</div>
+              <div
+                className="rotate-1 rounded-xl bg-[var(--color-card)] px-3 py-2.5 text-[14px] text-[var(--color-fg)] shadow-xl ring-2 ring-brand/70"
+                style={{ width: 176 }}
+              >
+                <div className="line-clamp-2">{activeTask.title}</div>
+              </div>
             ) : null}
           </DragOverlay>
         </DndContext>

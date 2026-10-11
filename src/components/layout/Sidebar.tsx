@@ -13,7 +13,6 @@ import {
   Search,
   Settings,
   Settings2,
-  SquareKanban,
   Tag as TagIcon,
   Trash2,
   User,
@@ -437,9 +436,6 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
         <div className="mb-1 mt-4 px-2 text-xs font-medium text-[var(--color-muted)]">模块</div>
         <button type="button" className={itemCls(isModule('calendar'))} onClick={() => go({ kind: 'module', id: 'calendar' })}>
           <CalendarDays size={16} /> 日历
-        </button>
-        <button type="button" className={itemCls(isModule('board'))} onClick={() => go({ kind: 'module', id: 'board' })}>
-          <SquareKanban size={16} /> 看板
         </button>
         <button type="button" className={itemCls(isModule('quadrant'))} onClick={() => go({ kind: 'module', id: 'quadrant' })}>
           <LayoutGrid size={16} /> 四象限

@@ -73,7 +73,6 @@ export type SmartListId =
 
 export type ModuleId =
   | 'calendar'
-  | 'board'
   | 'quadrant'
   | 'settings'
   | 'search'

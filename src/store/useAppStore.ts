@@ -143,6 +143,7 @@ export const useAppStore = create<AppState>()(
       selectedTaskId: null,
       listViewMode: 'list',
       sortBy: 'due',
+      // 看板视图已移除；字段保留以兼容同步协议（与 sessions 同理）
       boardGroupBy: 'priority',
       calendarMode: 'month',
       calendarCursor: dayjs().toISOString(),
@@ -515,6 +516,10 @@ export const useAppStore = create<AppState>()(
         }
         if (av?.kind === 'module' && (av as { id: string }).id === 'habits') {
           merged.activeView = { kind: 'smart', id: 'today' }
+        }
+        // 看板视图已移除：停留在看板的用户迁移到四象限
+        if (av?.kind === 'module' && (av as { id: string }).id === 'board') {
+          merged.activeView = { kind: 'module', id: 'quadrant' }
         }
         if ((merged.listViewMode as string) === 'pomodoro') {
           merged.listViewMode = 'list'

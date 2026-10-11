@@ -1,8 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { ChevronDown, Menu } from 'lucide-react'
-import { SwipeableList, Type as SwipeType } from 'react-swipeable-list'
-import 'react-swipeable-list/dist/styles.css'
 import { useAppStore } from '../../store/useAppStore'
 import { useToastStore } from '../../store/useToastStore'
 import { TaskItem } from './TaskItem'
@@ -181,12 +179,12 @@ export function TaskListPanel() {
 
   const renderTaskItems = (groupTasks: Task[]) =>
     isMobile ? (
-      // fullSwipe 关闭：滑动只展开操作按钮，点按才触发（避免误删）
-      <SwipeableList type={SwipeType.IOS} threshold={0.35} className="swipe-task-list">
+      // 每行自带 SwipeRow（左右滑呼出操作按钮，点按才触发）
+      <div className="swipe-task-list">
         {groupTasks.map((t) => (
           <TaskItem key={t.id} task={t} compact subCount={subCounts.get(t.id)} />
         ))}
-      </SwipeableList>
+      </div>
     ) : (
       groupTasks.map((t) => <TaskItem key={t.id} task={t} compact subCount={subCounts.get(t.id)} />)
     )

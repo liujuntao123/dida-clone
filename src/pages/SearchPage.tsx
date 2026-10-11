@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Folder, Search, Tag as TagIcon, X } from 'lucide-react'
-import { SwipeableList, Type as SwipeType } from 'react-swipeable-list'
-import 'react-swipeable-list/dist/styles.css'
 import { TaskItem } from '../components/tasks/TaskItem'
 import { useAppStore } from '../store/useAppStore'
 import { dayjs } from '../lib/dates'
@@ -151,11 +149,11 @@ export function SearchPage() {
             </div>
             <div className="px-1 pb-2">
               {isMobile ? (
-                <SwipeableList type={SwipeType.IOS} threshold={0.35} className="swipe-task-list">
+                <div className="swipe-task-list">
                   {taskResults.map((t) => (
                     <TaskItem key={t.id} task={t} compact />
                   ))}
-                </SwipeableList>
+                </div>
               ) : (
                 taskResults.map((t) => <TaskItem key={t.id} task={t} compact />)
               )}

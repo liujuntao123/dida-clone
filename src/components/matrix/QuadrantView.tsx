@@ -105,7 +105,7 @@ function QuadTaskRow({
         type="button"
         onClick={onOpen}
         className={cn(
-          'min-w-0 flex-1 text-left text-[14px] leading-snug',
+          'min-w-0 flex-1 text-left text-[13px] leading-snug',
           done ? 'text-[var(--color-muted)]' : 'text-[var(--color-fg)]',
         )}
       >
@@ -172,13 +172,13 @@ function Quad({
         >
           {q.roman}
         </span>
-        <span className={cn('truncate text-[14px] font-medium', q.labelClass)}>{q.title}</span>
+        <span className={cn('truncate text-[13px] font-medium', q.labelClass)}>{q.title}</span>
         <span className="tnum ml-auto shrink-0 text-xs text-[var(--color-muted)]">{todoTasks.length || ''}</span>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {all.length === 0 ? (
-          <div className="flex h-full min-h-20 items-center justify-center text-[14px] text-[var(--color-muted)]/80">
+          <div className="flex h-full min-h-20 items-center justify-center text-[13px] text-[var(--color-muted)]/80">
             没有任务
           </div>
         ) : (

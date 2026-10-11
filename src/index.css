@@ -132,41 +132,49 @@ textarea:focus {
   width: 100%;
 }
 
-/* ---------- 任务行左右滑操作（react-swipeable-list）样式覆写 ---------- */
-/* 操作按钮固定宽度：揭示过程中不随容器宽度拉伸/压缩（lib 默认 flex:1 + width:100%） */
-.swipeable-list-item__leading-actions > .swipe-action,
-.swipeable-list-item__trailing-actions > .swipe-action {
-  width: auto;
-  flex: 0 0 auto;
+/* ---------- 任务行左右滑（SwipeRow 自研轻实现） ---------- */
+.swipeable-list-item {
+  position: relative;
+  width: 100%;
 }
-/* lib 把按钮内容推到底部/顶部（trailing: flex-end / leading: flex-start），统一居中 */
-.swipeable-list-item__leading-actions .swipe-action > *,
-.swipeable-list-item__trailing-actions .swipe-action > * {
-  justify-content: center;
+.swipeable-list-item__content {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  /* 不透明：收起时完全盖住底下的操作按钮 */
+  background: var(--color-card);
 }
-/* 回弹更跟手：lib 默认 0.5s ease-in-out 太黏 */
-.swipeable-list-item__content--return {
-  transition: transform 0.26s cubic-bezier(0.25, 0.8, 0.35, 1) !important;
+.swipeable-list-item__content.swipe-row-anim {
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
-.swipeable-list-item__leading-actions--return,
-.swipeable-list-item__trailing-actions--return {
-  transition: width 0.26s cubic-bezier(0.25, 0.8, 0.35, 1) !important;
+.swipeable-list-item__leading-actions,
+.swipeable-list-item__trailing-actions {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  display: flex;
+  z-index: 0;
+}
+.swipeable-list-item__leading-actions {
+  left: 0;
+}
+.swipeable-list-item__trailing-actions {
+  right: 0;
+}
+.swipe-action {
+  display: flex;
+  align-items: stretch;
+}
+@media (prefers-reduced-motion: reduce) {
+  .swipeable-list-item__content.swipe-row-anim {
+    transition: none;
+  }
 }
 
 /* Drawer sheet height — dvh with vh fallback for older WebViews */
 .sheet-92 {
   height: 92vh;
   height: 92dvh;
-}
-.swipeable-list-item {
-  background: transparent;
-}
-.swipeable-list-item__content {
-  background: transparent;
-}
-.swipeable-list-item__leading-actions,
-.swipeable-list-item__trailing-actions {
-  min-height: 100%;
 }
 
 /* Orange caret for quick-add / detail inputs */
@@ -356,9 +364,7 @@ textarea:focus {
   .animate-month-prev {
     animation: none;
   }
-  .swipeable-list-item__content--return,
-  .swipeable-list-item__leading-actions--return,
-  .swipeable-list-item__trailing-actions--return {
+  .swipeable-list-item__content.swipe-row-anim {
     transition: none;
   }
 }

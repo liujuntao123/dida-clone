@@ -17,14 +17,12 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import {
-  ArrowDownWideNarrow,
   ArrowLeft,
   Ban,
   CalendarDays,
   Check,
   ChevronsUpDown,
   GripVertical,
-  ListTodo,
   ListTree,
   MoreVertical,
   Pin,
@@ -37,46 +35,11 @@ import {
 import { useAppStore } from '../../store/useAppStore'
 import { PRIORITY_LABELS, TAG_COLORS } from '../../lib/constants'
 import { dayjs } from '../../lib/dates'
-import { uid } from '../../lib/id'
 import { useBackHandler } from '../../lib/backNav'
 import { PriorityFlag } from '../common/PriorityFlag'
+import { ProgressRing } from '../common/ProgressRing'
 import type { Priority, Task } from '../../types'
 import { cn } from '../../lib/cn'
-
-function ProgressRing({ percent, size = 28 }: { percent: number; size?: number }) {
-  const stroke = 2.5
-  const r = (size - stroke) / 2
-  const c = 2 * Math.PI * r
-  const offset = c * (1 - Math.min(100, Math.max(0, percent)) / 100)
-  return (
-    <div className="relative shrink-0" style={{ width: size, height: size }} aria-label={`进度 ${percent}%`}>
-      <svg width={size} height={size} className="-rotate-90">
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke="var(--color-border)"
-          strokeWidth={stroke}
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke="var(--color-brand)"
-          strokeWidth={stroke}
-          strokeDasharray={c}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-        />
-      </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-[9px] font-medium text-[var(--color-muted)]">
-        {percent}%
-      </span>
-    </div>
-  )
-}
 
 /** 与 TaskItem 的快速改期保持一致：保留原时间，只挪日期。 */
 function dueAtDay(offsetDays: number, preserveTime?: string | null) {
@@ -126,14 +89,18 @@ function SortableSubtaskRow({
         type="button"
         aria-label={done ? '取消完成' : '完成子任务'}
         onClick={onToggle}
-        className={cn(
-          'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[6px] border-2 transition',
-          done
-            ? 'border-brand bg-brand text-white'
-            : 'border-[var(--color-muted)]/70 text-transparent hover:border-brand',
-        )}
+        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center"
       >
-        <Check size={12} strokeWidth={3.5} />
+        <span
+          className={cn(
+            'flex h-5 w-5 items-center justify-center rounded-[6px] border-2 transition',
+            done
+              ? 'border-brand bg-brand text-white'
+              : 'border-[var(--color-muted)]/70 text-transparent hover:border-brand',
+          )}
+        >
+          <Check size={12} strokeWidth={3.5} />
+        </span>
       </button>
       <button
         type="button"
@@ -148,7 +115,7 @@ function SortableSubtaskRow({
       <button
         type="button"
         aria-label="删除子任务"
-        className="shrink-0 text-[var(--color-muted)]/50 hover:text-red-500 md:text-[var(--color-muted)] md:opacity-0 md:transition md:group-hover:opacity-100"
+        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-[var(--color-muted)]/50 hover:text-red-500 md:text-[var(--color-muted)] md:opacity-0 md:transition md:group-hover:opacity-100"
         onClick={onDelete}
       >
         <Trash2 size={15} />
@@ -185,8 +152,6 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
   const abandonTask = useAppStore((s) => s.abandonTask)
   const toggleComplete = useAppStore((s) => s.toggleComplete)
   const togglePin = useAppStore((s) => s.togglePin)
-  const toggleChecklistItem = useAppStore((s) => s.toggleChecklistItem)
-  const setChecklist = useAppStore((s) => s.setChecklist)
   const getSubtasks = useAppStore((s) => s.getSubtasks)
   const addSubtask = useAppStore((s) => s.addSubtask)
   const reorderSubtasks = useAppStore((s) => s.reorderSubtasks)
@@ -203,10 +168,8 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
   const [tagsOpen, setTagsOpen] = useState(false)
   const [dateOpen, setDateOpen] = useState(false)
   const [editingNote, setEditingNote] = useState(false)
-  const [checkText, setCheckText] = useState('')
   const [subText, setSubText] = useState('')
   const [newTagText, setNewTagText] = useState('')
-  const checkInputRef = useRef<HTMLInputElement>(null)
   const subInputRef = useRef<HTMLInputElement>(null)
   const titleRef = useRef<HTMLTextAreaElement>(null)
 
@@ -234,7 +197,6 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
     setTagsOpen(false)
     setDateOpen(false)
     setEditingNote(false)
-    setCheckText('')
     setSubText('')
     setNewTagText('')
   }, [selectedTaskId])
@@ -269,13 +231,9 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
   const list = lists.find((l) => l.id === task.listId)
   const subtasks = getSubtasks(task.id)
   const isTopLevel = !task.parentId
-  const checkDone = task.checklist.filter((c) => c.done).length
-  const checkTotal = task.checklist.length
   const subDone = subtasks.filter((s) => s.status === 'done').length
   const subTotal = subtasks.length
-  const progressTotal = checkTotal + subTotal
-  const progressDone = checkDone + subDone
-  const progressPct = progressTotal > 0 ? Math.round((progressDone / progressTotal) * 100) : 0
+  const progressPct = subTotal > 0 ? Math.round((subDone / subTotal) * 100) : 0
 
   const dueLocal = task.dueAt ? dayjs(task.dueAt).format('YYYY-MM-DDTHH:mm') : ''
   const remindLocal = task.remindAt ? dayjs(task.remindAt).format('YYYY-MM-DDTHH:mm') : ''
@@ -293,24 +251,6 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
   const cyclePriority = () => {
     const next = ((task.priority + 1) % 4) as Priority
     updateTask(task.id, { priority: next })
-  }
-
-  /** 回车即添加检查项，并保持焦点支持连续录入。 */
-  const submitCheck = () => {
-    if (!checkText.trim()) return
-    setChecklist(task.id, [
-      ...task.checklist,
-      { id: uid('cl'), text: checkText.trim(), done: false },
-    ])
-    setCheckText('')
-    requestAnimationFrame(() => checkInputRef.current?.focus())
-  }
-
-  /** 已完成项沉底（TickTick 的检查项排序）。 */
-  const sortChecklist = () => {
-    const undone = task.checklist.filter((c) => !c.done)
-    const doneItems = task.checklist.filter((c) => c.done)
-    setChecklist(task.id, [...undone, ...doneItems])
   }
 
   const submitSub = () => {
@@ -602,7 +542,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
             <CalendarDays size={18} strokeWidth={1.75} className="shrink-0 opacity-80" />
             <span className="truncate">{dateLabel}</span>
           </button>
-          {progressTotal > 0 && <ProgressRing percent={progressPct} />}
+          {subTotal > 0 && <ProgressRing percent={progressPct} size={28} stroke={2.5} label={`${progressPct}%`} />}
         </div>
 
         {dateOpen && (
@@ -816,98 +756,8 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
           )}
         </div>
 
-        {/* Checklist（换行/回车即可添加，右侧排序按钮） */}
+        {/* 子任务（即检查事项）— only top-level tasks can have children */}
         <div onClick={(e) => e.stopPropagation()}>
-          <ul>
-            {task.checklist.map((c, i) => (
-              <li
-                key={c.id}
-                className={cn(
-                  'group flex items-start gap-3 py-3',
-                  i > 0 && 'border-t border-[var(--color-border)]',
-                )}
-              >
-                <button
-                  type="button"
-                  aria-label={c.done ? '取消完成' : '完成检查项'}
-                  onClick={() => toggleChecklistItem(task.id, c.id)}
-                  className={cn(
-                    'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] border transition',
-                    c.done
-                      ? 'border-brand bg-brand text-white'
-                      : 'border-[var(--color-muted)]/70 text-transparent hover:border-brand',
-                  )}
-                >
-                  <Check size={12} strokeWidth={3} />
-                </button>
-                <input
-                  value={c.text}
-                  onChange={(e) =>
-                    setChecklist(
-                      task.id,
-                      task.checklist.map((x) => (x.id === c.id ? { ...x, text: e.target.value } : x)),
-                    )
-                  }
-                  className={cn(
-                    'accent-caret min-w-0 flex-1 bg-transparent text-sm outline-none',
-                    c.done && 'text-[var(--color-muted)] line-through',
-                  )}
-                />
-                <button
-                  type="button"
-                  aria-label="删除检查项"
-                  className="shrink-0 text-[var(--color-muted)]/50 hover:text-red-500 md:text-[var(--color-muted)] md:opacity-0 md:transition md:group-hover:opacity-100"
-                  onClick={() => setChecklist(task.id, task.checklist.filter((x) => x.id !== c.id))}
-                >
-                  <Trash2 size={15} />
-                </button>
-              </li>
-            ))}
-
-            {/* 常驻添加行：占位符提示「换行即可添加检查事项」 */}
-            <li
-              className={cn(
-                'flex items-center gap-3 py-3',
-                task.checklist.length > 0 && 'border-t border-[var(--color-border)]',
-              )}
-            >
-              <button
-                type="button"
-                aria-label="填写检查项"
-                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] border border-[var(--color-border)]"
-                onClick={() => checkInputRef.current?.focus()}
-              />
-              <input
-                ref={checkInputRef}
-                value={checkText}
-                onChange={(e) => setCheckText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    submitCheck()
-                  }
-                  if (e.key === 'Escape') setCheckText('')
-                }}
-                onBlur={() => {
-                  if (checkText.trim()) submitCheck()
-                }}
-                placeholder="换行即可添加检查事项"
-                aria-label="新检查项"
-                className="accent-caret min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--color-muted)]"
-              />
-              <button
-                type="button"
-                aria-label="排序检查项"
-                title="已完成项沉底"
-                className="flex h-8 w-8 shrink-0 items-center justify-center text-[var(--color-muted)]/70 active:opacity-70"
-                onClick={sortChecklist}
-              >
-                <ArrowDownWideNarrow size={16} />
-              </button>
-            </li>
-          </ul>
-
-          {/* Subtasks — only top-level tasks can have children */}
           {isTopLevel && (
             <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleSubDragEnd}>
               <SortableContext items={subtasks.map((s) => s.id)} strategy={verticalListSortingStrategy}>
@@ -916,7 +766,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
                     <SortableSubtaskRow
                       key={s.id}
                       sub={s}
-                      showTopBorder={i > 0 || task.checklist.length > 0}
+                      showTopBorder={i > 0}
                       onToggle={() => toggleComplete(s.id)}
                       onOpen={() => setSelectedTaskId(s.id)}
                       onDelete={() => softDelete(s.id)}
@@ -927,17 +777,18 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
                   <li
                     className={cn(
                       'flex items-start gap-3 py-3',
-                      (task.checklist.length > 0 || subtasks.length > 0) &&
-                        'border-t border-[var(--color-border)]',
+                      subtasks.length > 0 && 'border-t border-[var(--color-border)]',
                     )}
                   >
                     <button
                       type="button"
                       aria-label="添加子任务"
-                      className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[6px] border-2 border-dashed border-[var(--color-muted)]/50 text-transparent"
+                      className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center"
                       onClick={() => subInputRef.current?.focus()}
                     >
-                      <Check size={12} strokeWidth={3.5} />
+                      <span className="flex h-5 w-5 items-center justify-center rounded-[6px] border-2 border-dashed border-[var(--color-muted)]/50 text-transparent">
+                        <Check size={12} strokeWidth={3.5} />
+                      </span>
                     </button>
                     <input
                       ref={subInputRef}
@@ -967,9 +818,9 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
         </div>
       </div>
 
-      {/* Bottom toolbar — 标签 / 检查项 / 子任务（居中排布，参考滴答清单） */}
+      {/* Bottom toolbar — 标签 / 子任务（居中排布，参考滴答清单） */}
       <div
-        className="flex shrink-0 items-center justify-center gap-12 border-t border-[var(--color-border)] px-2"
+        className="flex shrink-0 items-center justify-center gap-16 border-t border-[var(--color-border)] px-2"
         style={{
           paddingBottom:
             variant === 'sheet'
@@ -993,18 +844,6 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
         >
           <TagIcon size={20} strokeWidth={1.75} />
         </button>
-        <button
-          type="button"
-          className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-[var(--color-muted)] active:opacity-70"
-          aria-label="添加检查项"
-          onClick={() => {
-            setTagsOpen(false)
-            setDateOpen(false)
-            checkInputRef.current?.focus()
-          }}
-        >
-          <ListTodo size={20} strokeWidth={1.75} />
-        </button>
         {isTopLevel && (
           <button
             type="button"
@@ -1018,7 +857,6 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
             <ListTree size={20} strokeWidth={1.75} />
           </button>
         )}
-        {/* Fourth slot intentionally empty — no attachment icon */}
       </div>
     </div>
   )

@@ -198,7 +198,7 @@ export function TaskItem({
         )}
       </button>
       <div className="min-w-0 flex-1 py-0.5">
-        <div className={cn('flex items-start gap-1.5 text-[15px] leading-snug', done && 'text-[var(--color-muted)] line-through')}>
+        <div className={cn('flex items-start gap-1.5 text-sm leading-snug', done && 'text-[var(--color-muted)] line-through')}>
           {pinned && <Pin size={14} className="mt-0.5 shrink-0 text-amber-500" aria-label="已置顶" />}
           <span>{task.title}</span>
         </div>

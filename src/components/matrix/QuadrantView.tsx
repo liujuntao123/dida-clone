@@ -248,7 +248,7 @@ export function QuadrantView() {
         className="relative flex min-h-12 shrink-0 items-center justify-between px-4"
         style={{ paddingTop: 'max(10px, env(safe-area-inset-top, 0px))' }}
       >
-        <h1 className="text-[24px] font-bold tracking-tight">四象限</h1>
+        <h1 className="text-[20px] font-bold tracking-tight">四象限</h1>
         <button
           type="button"
           aria-label="更多"

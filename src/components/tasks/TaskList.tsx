@@ -90,10 +90,10 @@ function TaskGroupCard({
         className="flex w-full min-h-12 items-center justify-between px-4 py-2.5"
         onClick={toggle}
       >
-        <span className={cn('text-[15px] font-semibold', muted ? 'text-[var(--color-muted)]' : 'text-[var(--color-fg)]')}>
+        <span className={cn('text-sm font-semibold', muted ? 'text-[var(--color-muted)]' : 'text-[var(--color-fg)]')}>
           {group.title}
         </span>
-        <span className="flex items-center gap-1 text-[13px] text-[var(--color-muted)]">
+        <span className="flex items-center gap-1 text-xs text-[var(--color-muted)]">
           <span className="tnum">{group.tasks.length}</span>
           <ChevronDown size={15} strokeWidth={2} className={cn('transition-transform duration-200', !isOpen && '-rotate-90')} />
         </span>
@@ -196,9 +196,9 @@ export function TaskListPanel() {
       <div className="mb-1 flex h-16 w-16 items-center justify-center rounded-3xl bg-[var(--color-card)]">
         <span className="text-2xl">🎉</span>
       </div>
-      <p className="text-[15px] font-medium text-[var(--color-fg)]/90">一切清朗，无待办事项</p>
-      <p className="text-[13px] text-[var(--color-muted)] md:hidden">点右下角 + 添加一件事</p>
-      <p className="hidden text-[13px] text-[var(--color-muted)] md:block">在上方输入框添加一件事</p>
+      <p className="text-sm font-medium text-[var(--color-fg)]/90">一切清朗，无待办事项</p>
+      <p className="text-xs text-[var(--color-muted)] md:hidden">点右下角 + 添加一件事</p>
+      <p className="hidden text-xs text-[var(--color-muted)] md:block">在上方输入框添加一件事</p>
     </div>
   )
 

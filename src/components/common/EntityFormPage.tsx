@@ -71,7 +71,7 @@ export function EntityFormPage({
             }}
             placeholder="名称"
             maxLength={30}
-            className="accent-caret min-h-14 w-full bg-transparent text-[16px] outline-none placeholder:text-[var(--color-muted)]"
+            className="accent-caret min-h-14 w-full bg-transparent text-[15px] outline-none placeholder:text-[var(--color-muted)]"
           />
           {name && (
             <button
@@ -87,7 +87,7 @@ export function EntityFormPage({
 
         {/* 颜色 */}
         <div className="mt-3 rounded-2xl bg-[var(--color-card)] px-4 py-4">
-          <div className="mb-3 text-[13px] text-[var(--color-muted)]">颜色</div>
+          <div className="mb-3 text-xs text-[var(--color-muted)]">颜色</div>
           <ColorPicker value={color} onChange={onColorChange} allowNone={allowNone} />
         </div>
 
@@ -95,7 +95,7 @@ export function EntityFormPage({
         {deleteLabel && onDelete && (
           <button
             type="button"
-            className="mt-3 flex min-h-12 w-full items-center justify-center rounded-2xl bg-[var(--color-card)] text-[15px] text-red-500 active:opacity-70"
+            className="mt-3 flex min-h-12 w-full items-center justify-center rounded-2xl bg-[var(--color-card)] text-sm text-red-500 active:opacity-70"
             onClick={onDelete}
           >
             {deleteLabel}

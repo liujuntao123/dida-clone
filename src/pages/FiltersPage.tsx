@@ -89,7 +89,7 @@ export function FiltersPage() {
       />
       <div className="flex-1 space-y-3 overflow-y-auto p-3">
         <div className="rounded-2xl bg-[var(--color-card)] p-4">
-          <div className="mb-3 text-[15px] font-medium">优先级</div>
+          <div className="mb-3 text-sm font-medium">优先级</div>
           <div className="flex flex-wrap gap-2">
             {([3, 2, 1, 0] as Priority[]).map((p) => (
               <Chip
@@ -105,7 +105,7 @@ export function FiltersPage() {
         </div>
 
         <div className="rounded-2xl bg-[var(--color-card)] p-4">
-          <div className="mb-3 text-[15px] font-medium">清单</div>
+          <div className="mb-3 text-sm font-medium">清单</div>
           <div className="flex flex-wrap gap-2">
             {lists.map((l) => (
               <Chip key={l.id} on={filter.listIds.includes(l.id)} onClick={() => toggleList(l.id)}>
@@ -117,7 +117,7 @@ export function FiltersPage() {
         </div>
 
         <div className="rounded-2xl bg-[var(--color-card)] p-4">
-          <div className="mb-3 text-[15px] font-medium">标签</div>
+          <div className="mb-3 text-sm font-medium">标签</div>
           {tags.length === 0 ? (
             <div className="flex items-center gap-2 text-sm text-[var(--color-muted)]">
               <ListFilter size={14} /> 暂无标签

@@ -24,12 +24,12 @@ export function QuickAdd() {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder="添加任务，试试「明天 14:00 开会」"
-          className="accent-caret min-h-11 flex-1 bg-transparent text-[15px] outline-none placeholder:text-[var(--color-muted)]"
+          className="accent-caret min-h-11 flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--color-muted)]"
         />
         <button
           type="submit"
           disabled={!value.trim()}
-          className="btn-primary min-h-10 px-4 text-sm"
+          className="btn-primary min-h-10 px-4 text-[13px]"
         >
           添加
         </button>

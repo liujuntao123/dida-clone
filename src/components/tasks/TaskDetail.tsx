@@ -138,7 +138,7 @@ function SortableSubtaskRow({
       <button
         type="button"
         className={cn(
-          'accent-caret min-w-0 flex-1 truncate text-left text-[15px]',
+          'accent-caret min-w-0 flex-1 truncate text-left text-sm',
           done ? 'text-[var(--color-muted)] line-through' : 'text-[var(--color-fg)]',
         )}
         onClick={onOpen}
@@ -365,7 +365,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
         {parentTask ? (
           <button
             type="button"
-            className="flex min-h-11 max-w-full items-center gap-1 text-[15px] text-[var(--color-fg)]"
+            className="flex min-h-11 max-w-full items-center gap-1 text-sm text-[var(--color-fg)]"
             onClick={() => {
               setListOpen(false)
               setPriorityOpen(false)
@@ -380,7 +380,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
         ) : (
           <button
             type="button"
-            className="flex min-h-11 max-w-[55%] items-center gap-1 text-[15px] text-[var(--color-fg)]"
+            className="flex min-h-11 max-w-[55%] items-center gap-1 text-sm text-[var(--color-fg)]"
             onClick={() => {
               setPriorityOpen(false)
               setMenuOpen(false)
@@ -591,7 +591,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
           <button
             type="button"
             className={cn(
-              'min-h-11 flex flex-1 items-center gap-2.5 text-left text-[15px]',
+              'min-h-11 flex flex-1 items-center gap-2.5 text-left text-sm',
               task.dueAt || task.remindAt ? 'text-[var(--color-fg)]' : 'text-[var(--color-muted)]',
             )}
             onClick={() => {
@@ -676,7 +676,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
             el.style.height = 'auto'
             el.style.height = `${el.scrollHeight}px`
           }}
-          className="accent-caret mb-1 mt-2 w-full resize-none border-0 bg-transparent text-[22px] font-semibold leading-snug text-[var(--color-fg)] outline-none"
+          className="accent-caret mb-1 mt-2 w-full resize-none border-0 bg-transparent text-[20px] font-semibold leading-snug text-[var(--color-fg)] outline-none"
           placeholder="任务标题"
         />
 
@@ -784,7 +784,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
                 onBlur={() => setEditingNote(false)}
                 rows={4}
                 placeholder="描述"
-                className="accent-caret w-full resize-none bg-transparent text-[15px] text-[var(--color-fg)] outline-none placeholder:text-[var(--color-muted)]"
+                className="accent-caret w-full resize-none bg-transparent text-sm text-[var(--color-fg)] outline-none placeholder:text-[var(--color-muted)]"
               />
               {(task.note ?? '').trim() && (
                 <button
@@ -800,7 +800,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
           ) : (task.note ?? '').trim() ? (
             <button
               type="button"
-              className="md-note max-w-none w-full rounded-lg text-left text-[15px] text-[var(--color-fg)]/90"
+              className="md-note max-w-none w-full rounded-lg text-left text-sm text-[var(--color-fg)]/90"
               onClick={() => setEditingNote(true)}
             >
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{task.note!}</ReactMarkdown>
@@ -808,7 +808,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
           ) : (
             <button
               type="button"
-              className="min-h-11 w-full text-left text-[15px] text-[var(--color-muted)]"
+              className="min-h-11 w-full text-left text-sm text-[var(--color-muted)]"
               onClick={() => setEditingNote(true)}
             >
               描述
@@ -849,7 +849,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
                     )
                   }
                   className={cn(
-                    'accent-caret min-w-0 flex-1 bg-transparent text-[15px] outline-none',
+                    'accent-caret min-w-0 flex-1 bg-transparent text-sm outline-none',
                     c.done && 'text-[var(--color-muted)] line-through',
                   )}
                 />
@@ -893,7 +893,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
                 }}
                 placeholder="换行即可添加检查事项"
                 aria-label="新检查项"
-                className="accent-caret min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-[var(--color-muted)]"
+                className="accent-caret min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--color-muted)]"
               />
               <button
                 type="button"
@@ -954,7 +954,7 @@ export function TaskDetail({ variant = 'panel' }: { variant?: 'panel' | 'sheet' 
                         if (subText.trim()) submitSub()
                       }}
                       placeholder="添加子任务"
-                      className="accent-caret min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-[var(--color-muted)]"
+                      className="accent-caret min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--color-muted)]"
                     />
                     <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center text-[var(--color-muted)]/30">
                       <GripVertical size={16} />

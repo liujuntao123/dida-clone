@@ -100,7 +100,7 @@ export function CalendarView() {
         className="flex items-center gap-1 px-3 pb-1"
         style={{ paddingTop: 'max(10px, env(safe-area-inset-top, 0px))' }}
       >
-        <h1 className="min-w-0 flex-1 truncate text-[24px] font-bold tracking-tight">{monthTitle}</h1>
+        <h1 className="min-w-0 flex-1 truncate text-[20px] font-bold tracking-tight">{monthTitle}</h1>
         <button
           type="button"
           className="min-h-11 shrink-0 rounded-lg px-2.5 text-sm font-medium text-brand active:opacity-70"
@@ -166,7 +166,7 @@ export function CalendarView() {
               >
                 <span
                   className={cn(
-                    'flex h-9 w-9 items-center justify-center rounded-full text-[15px] transition-colors',
+                    'flex h-9 w-9 items-center justify-center rounded-full text-sm transition-colors',
                     !inMonth && 'text-[var(--color-muted)]/40',
                     inMonth && !isSelected && !isToday && 'text-[var(--color-fg)]',
                     isToday && !isSelected && 'font-semibold text-brand ring-1 ring-inset ring-brand/60',
@@ -200,8 +200,8 @@ export function CalendarView() {
                 <ChevronRight size={14} className="text-white" />
               </span>
             </div>
-            <p className="text-[15px] font-medium text-[var(--color-fg)]/90">这一天没有安排</p>
-            <p className="text-[13px] text-[var(--color-muted)]">放松一下吧</p>
+            <p className="text-sm font-medium text-[var(--color-fg)]/90">这一天没有安排</p>
+            <p className="text-xs text-[var(--color-muted)]">放松一下吧</p>
           </div>
         ) : (
           <ul className="space-y-1.5 px-3 pb-3 pt-1">
@@ -225,7 +225,7 @@ export function CalendarView() {
                     className="min-w-0 min-h-11 flex-1 text-left"
                     onClick={() => setSelectedTaskId(t.id)}
                   >
-                    <div className="truncate text-[15px]">{t.title}</div>
+                    <div className="truncate text-sm">{t.title}</div>
                     <div className="mt-0.5 flex items-center gap-2 text-xs text-[var(--color-muted)]">
                       <PriorityFlag priority={t.priority} size={11} />
                       <span>{dayjs(t.dueAt).format('HH:mm')}</span>

@@ -123,7 +123,7 @@ export function TagsPage() {
         {tags.length === 0 ? (
           <div className="flex flex-col items-center gap-1.5 px-6 py-14 text-center">
             <TagIcon size={26} strokeWidth={1.5} className="text-[var(--color-muted)]/60" />
-            <p className="text-[13px] text-[var(--color-muted)]">暂无标签，点右上角 + 新建</p>
+            <p className="text-xs text-[var(--color-muted)]">暂无标签，点右上角 + 新建</p>
           </div>
         ) : (
           <div className="overflow-hidden rounded-2xl bg-[var(--color-card)]">
@@ -135,8 +135,8 @@ export function TagsPage() {
                   onClick={() => setActiveView({ kind: 'tag', id: t.id })}
                 >
                   <TagIcon size={18} strokeWidth={2} style={{ color: t.color }} className="shrink-0" />
-                  <span className="min-w-0 flex-1 truncate text-[15px]">{t.name}</span>
-                  <span className="tnum text-[13px] text-[var(--color-muted)]">{todoCount(t.id) || ''}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm">{t.name}</span>
+                  <span className="tnum text-xs text-[var(--color-muted)]">{todoCount(t.id) || ''}</span>
                 </button>
                 <button
                   type="button"

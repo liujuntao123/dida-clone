@@ -31,7 +31,7 @@ git tag -a v0.10.0 -m "..." && git push origin v0.10.0
 ```bash
 npx tsc -b && npm run lint && npm run build
 npm run preview -- --port 4173 &     # 或后台起服务
-node scripts/e2e-check.mjs           # 51 项断言，移动端 + 桌面端
+node scripts/e2e-check.mjs           # 53 项断言，移动端 + 桌面端
 ```
 
 E2E 的 headless 特殊性（改脚本/环境时注意）：

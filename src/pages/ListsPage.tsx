@@ -119,8 +119,8 @@ export function ListsPage() {
               onClick={() => setActiveView({ kind: 'smart', id: 'inbox' })}
             >
               <Inbox size={19} strokeWidth={2} className="shrink-0 text-brand" />
-              <span className="min-w-0 flex-1 truncate text-[15px]">收集箱</span>
-              <span className="tnum text-[13px] text-[var(--color-muted)]">{todoCount(inbox.id) || ''}</span>
+              <span className="min-w-0 flex-1 truncate text-sm">收集箱</span>
+              <span className="tnum text-xs text-[var(--color-muted)]">{todoCount(inbox.id) || ''}</span>
             </button>
           )}
           {customLists.map((l, i) => (
@@ -131,8 +131,8 @@ export function ListsPage() {
                 onClick={() => setActiveView({ kind: 'list', id: l.id })}
               >
                 <Folder size={19} strokeWidth={2} style={{ color: l.color }} className="shrink-0" />
-                <span className="min-w-0 flex-1 truncate text-[15px]">{l.name}</span>
-                <span className="tnum text-[13px] text-[var(--color-muted)]">{todoCount(l.id) || ''}</span>
+                <span className="min-w-0 flex-1 truncate text-sm">{l.name}</span>
+                <span className="tnum text-xs text-[var(--color-muted)]">{todoCount(l.id) || ''}</span>
               </button>
               <button
                 type="button"
@@ -149,7 +149,7 @@ export function ListsPage() {
         {customLists.length === 0 && (
           <div className="flex flex-col items-center gap-1.5 px-6 py-14 text-center">
             <Folder size={26} strokeWidth={1.5} className="text-[var(--color-muted)]/60" />
-            <p className="text-[13px] text-[var(--color-muted)]">还没有自定义清单，点右上角 + 新建</p>
+            <p className="text-xs text-[var(--color-muted)]">还没有自定义清单，点右上角 + 新建</p>
           </div>
         )}
       </div>

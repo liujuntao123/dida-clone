@@ -177,7 +177,7 @@ async function mobileSuite(browser) {
   const afterUndo = await tasksFromStorage(page)
   ok(afterUndo.filter((t) => t.status === 'trashed').length === beforeTasks.filter((t) => t.status === 'trashed').length, '撤销后任务恢复')
 
-  // 7. FAB 快速添加（自然语言日期）。FAB 用 pointer 事件打开，必须真实触摸。
+  // 7. FAB 快速添加（自然语言日期 + 工具条）。FAB 用 pointer 事件打开，必须真实触摸。
   {
     const fab = await page.$('button[aria-label="添加任务"]')
     const fb = await fab.boundingBox()
@@ -191,18 +191,37 @@ async function mobileSuite(browser) {
     await sleep(200)
     const previewText = await page.evaluate(() => document.body.innerText)
     ok(previewText.includes('识别日期'), '自然语言日期被识别')
-    await shot(page, 'm07-quickadd')
-    // 注意：侧栏抽屉常驻挂载且也有「添加」按钮，必须限定在快速添加抽屉内查找
+    // 新抽屉工具条：日期 / 优先级 / 标签 / 清单 / 描述 / 发送
+    const tools = await page.evaluate(() => {
+      const drawer = document.querySelector('[data-vaul-drawer]')
+      return ['设置日期', '优先级', '标签', '移动到清单', '描述', '保存任务'].map((n) =>
+        !!drawer?.querySelector(`button[aria-label^="${n}"]`),
+      )
+    })
+    ok(tools.every(Boolean), '新建抽屉工具条齐全（日期/优先级/标签/清单/描述/发送）')
+    // 选优先级「高」→ 出现属性胶囊
+    await page.evaluate(() => document.querySelector('[data-vaul-drawer] button[aria-label^="优先级"]')?.click())
+    await sleep(300)
     await page.evaluate(() => {
       const drawer = document.querySelector('[data-vaul-drawer]')
-      const btn = [...(drawer?.querySelectorAll('button') ?? [])].find(
-        (b) => b.textContent.trim() === '添加',
-      )
+      const btn = [...(drawer?.querySelectorAll('button') ?? [])].find((b) => b.textContent.trim() === '高')
       btn?.click()
+    })
+    await sleep(300)
+    const chipText = await page.evaluate(() => document.body.innerText)
+    ok(chipText.includes('识别日期') && chipText.includes('高'), '选中的优先级以属性胶囊展示')
+    await shot(page, 'm07-quickadd')
+    // 注意：侧栏抽屉常驻挂载且也有「添加」按钮，发送按钮必须在快速添加抽屉内查找
+    await page.evaluate(() => {
+      const drawer = document.querySelector('[data-vaul-drawer]')
+      drawer?.querySelector('button[type="submit"]')?.click()
     })
     await sleep(400)
     const afterAdd = await tasksFromStorage(page)
-    ok(afterAdd.some((t) => t.title.includes('自动化测试任务') && t.dueAt), '快速添加成功且带识别的日期')
+    ok(
+      afterAdd.some((t) => t.title.includes('自动化测试任务') && t.dueAt && t.priority === 3),
+      '快速添加成功且带识别的日期与优先级',
+    )
     // 等快速添加抽屉完全关闭，避免遮罩影响下一次滑动手势
     await page.waitForFunction(() => !document.querySelector('[data-vaul-drawer]'), { timeout: 5000 }).catch(() => {})
     await sleep(300)

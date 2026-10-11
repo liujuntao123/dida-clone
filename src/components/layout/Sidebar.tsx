@@ -205,7 +205,7 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--color-card)]">
             <User size={22} className="text-brand" />
           </div>
-          <div className="min-w-0 flex-1 truncate text-[17px] font-semibold">用户</div>
+          <div className="min-w-0 flex-1 truncate text-[16px] font-semibold">用户</div>
           <button
             type="button"
             className="flex h-11 w-11 items-center justify-center text-[var(--color-fg)]/85 active:opacity-70"
@@ -234,13 +234,13 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
                 onClick={() => go({ kind: 'smart', id })}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'mb-0.5 flex w-full min-h-12 items-center gap-3.5 rounded-xl px-2.5 text-[15px] transition',
+                  'mb-0.5 flex w-full min-h-12 items-center gap-3.5 rounded-xl px-2.5 text-sm transition',
                   active ? 'bg-brand/15' : 'active:bg-[var(--color-surface-2)]',
                 )}
               >
                 {icon}
                 <span className="flex-1 text-left">{label}</span>
-                {count > 0 && <span className="tnum text-sm text-[var(--color-muted)]">{count}</span>}
+                {count > 0 && <span className="tnum text-xs text-[var(--color-muted)]">{count}</span>}
               </button>
             )
           })}
@@ -270,7 +270,7 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
                   key={id}
                   type="button"
                   role="menuitem"
-                  className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-[15px] active:bg-[var(--color-surface-2)]"
+                  className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm active:bg-[var(--color-surface-2)]"
                   onClick={() => go({ kind: 'module', id: id as ModuleId })}
                 >
                   <Icon size={18} strokeWidth={1.75} className="text-[var(--color-fg)]/85" />
@@ -285,7 +285,7 @@ export function Sidebar({ variant = 'desktop' }: { variant?: Variant }) {
         <div className="flex items-center border-t border-[var(--color-border)] px-3 py-1.5">
           <button
             type="button"
-            className="flex min-h-11 items-center gap-2.5 px-1.5 text-[16px] text-[var(--color-fg)]/90"
+            className="flex min-h-11 items-center gap-2.5 px-1.5 text-[15px] text-[var(--color-fg)]/90"
             onClick={() => setAddMenuOpen((v) => !v)}
             aria-expanded={addMenuOpen}
           >

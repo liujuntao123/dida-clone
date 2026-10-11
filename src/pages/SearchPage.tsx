@@ -86,7 +86,7 @@ export function SearchPage() {
             }}
             placeholder="搜索"
             aria-label="搜索任务、标签、清单"
-            className="accent-caret min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-[var(--color-muted)]"
+            className="accent-caret min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--color-muted)]"
           />
           {query && (
             <button
@@ -104,7 +104,7 @@ export function SearchPage() {
         </div>
         <button
           type="button"
-          className="min-h-11 shrink-0 rounded-lg px-1 text-[16px] font-medium text-brand active:opacity-70"
+          className="min-h-11 shrink-0 rounded-lg px-1 text-sm font-medium text-brand active:opacity-70"
           onClick={goBack}
         >
           取消
@@ -120,7 +120,7 @@ export function SearchPage() {
             aria-pressed={scope === s.id}
             onClick={() => setScope(s.id)}
             className={cn(
-              'flex min-h-10 items-center rounded-full px-4 text-[15px] transition',
+              'flex min-h-10 items-center rounded-full px-4 text-sm transition',
               scope === s.id
                 ? 'bg-brand font-medium text-white'
                 : 'bg-[var(--color-card)] text-[var(--color-fg)]/85 active:bg-[var(--color-surface)]',
@@ -137,8 +137,8 @@ export function SearchPage() {
             <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-[var(--color-card)]">
               <Search size={32} className="text-[var(--color-muted)]/50" strokeWidth={1.25} />
             </div>
-            <p className="text-[15px] font-medium text-[var(--color-fg)]/90">你想搜索什么</p>
-            <p className="text-[13px] text-[var(--color-muted)]">输入关键词即可搜索任务、标签和清单</p>
+            <p className="text-sm font-medium text-[var(--color-fg)]/90">你想搜索什么</p>
+            <p className="text-xs text-[var(--color-muted)]">输入关键词即可搜索任务、标签和清单</p>
           </div>
         ) : scopeCount === 0 ? (
           <div className="flex flex-col items-center gap-2 px-6 py-16 text-center">
@@ -174,7 +174,7 @@ export function SearchPage() {
                 onClick={() => setActiveView({ kind: 'tag', id: t.id })}
               >
                 <TagIcon size={18} style={{ color: t.color }} className="shrink-0" />
-                <span className="min-w-0 flex-1 truncate text-[15px]">{t.name}</span>
+                <span className="min-w-0 flex-1 truncate text-sm">{t.name}</span>
               </button>
             ))}
           </div>
@@ -191,7 +191,7 @@ export function SearchPage() {
                 onClick={() => setActiveView(l.isInbox ? { kind: 'smart', id: 'inbox' } : { kind: 'list', id: l.id })}
               >
                 <Folder size={18} style={{ color: l.color }} className="shrink-0" />
-                <span className="min-w-0 flex-1 truncate text-[15px]">{l.name}</span>
+                <span className="min-w-0 flex-1 truncate text-sm">{l.name}</span>
               </button>
             ))}
           </div>

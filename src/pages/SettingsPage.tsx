@@ -9,13 +9,11 @@ import {
   Download,
   Eye,
   EyeOff,
-  Folder,
   Info,
   ListFilter,
   Loader2,
   Palette,
   SlidersHorizontal,
-  Tag as TagIcon,
   Upload,
 } from 'lucide-react'
 import { cn } from '../lib/cn'
@@ -47,7 +45,7 @@ import type { ThemeMode } from '../types'
 function Section({ title, icon, children }: { title: string; icon?: ReactNode; children: ReactNode }) {
   return (
     <section className="mt-5 first:mt-2">
-      <h2 className="mb-2 flex items-center gap-1.5 px-1 text-[13px] font-medium text-[var(--color-muted)]">
+      <h2 className="mb-2 flex items-center gap-1.5 px-1 text-xs font-medium text-[var(--color-muted)]">
         {icon}
         {title}
       </h2>
@@ -85,7 +83,7 @@ function Row({
         </span>
       )}
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[15px] leading-tight">{title}</span>
+        <span className="block truncate text-sm leading-tight">{title}</span>
         {subtitle && <span className="mt-0.5 block truncate text-xs text-[var(--color-muted)]">{subtitle}</span>}
       </span>
       {right}
@@ -149,8 +147,6 @@ function statusTextOf(status: SyncStatus): string {
 export function SettingsPage() {
   const theme = useAppStore((s) => s.theme)
   const setTheme = useAppStore((s) => s.setTheme)
-  const lists = useAppStore((s) => s.lists)
-  const tags = useAppStore((s) => s.tags)
   const filter = useAppStore((s) => s.filter)
   const setActiveView = useAppStore((s) => s.setActiveView)
   const lastListView = useAppStore((s) => s.lastListView)
@@ -261,7 +257,7 @@ export function SettingsPage() {
         <Section title="外观" icon={<Palette size={14} strokeWidth={1.75} />}>
           <div className="flex items-center gap-4 px-4 py-3">
             <div className="flex flex-1 flex-col">
-              <span className="text-[15px] leading-tight">主题</span>
+              <span className="text-sm leading-tight">主题</span>
               <span className="mt-0.5 text-xs text-[var(--color-muted)]">{theme === 'light' ? '浅色' : '深色'}</span>
             </div>
             <div className="flex gap-1 rounded-xl bg-[var(--color-surface-2)] p-1">
@@ -300,13 +296,13 @@ export function SettingsPage() {
               notifInfo.action === 'request' ? (
                 <button
                   type="button"
-                  className="btn-primary min-h-9 px-3.5 text-[13px]"
+                  className="btn-primary min-h-9 px-3.5 text-xs"
                   onClick={() => void requestNotif()}
                 >
                   开启
                 </button>
               ) : (
-                <span className={cn('flex items-center gap-1 text-[13px]', notifInfo.tone)}>
+                <span className={cn('flex items-center gap-1 text-xs', notifInfo.tone)}>
                   {notif === 'granted' && <Check size={14} strokeWidth={2.5} />}
                   {notifInfo.text}
                 </span>
@@ -324,7 +320,7 @@ export function SettingsPage() {
           <div className="relative px-4 py-2.5">
             <span className="row-divider-line absolute inset-x-4 top-0" />
             <label className="block">
-              <span className="mb-1 block text-[13px] text-[var(--color-muted)]">服务地址</span>
+              <span className="mb-1 block text-xs text-[var(--color-muted)]">服务地址</span>
               <input
                 type="url"
                 value={apiBaseUrl}
@@ -338,7 +334,7 @@ export function SettingsPage() {
           <div className="relative px-4 py-2.5">
             <span className="row-divider-line absolute inset-x-4 top-0" />
             <label className="block">
-              <span className="mb-1 block text-[13px] text-[var(--color-muted)]">访问密钥</span>
+              <span className="mb-1 block text-xs text-[var(--color-muted)]">访问密钥</span>
               <span className="relative block">
                 <input
                   type={showKey ? 'text' : 'password'}
@@ -362,7 +358,7 @@ export function SettingsPage() {
           </div>
 
           {/* 状态行 */}
-          <div className="relative flex flex-wrap items-center gap-x-2 gap-y-1 px-4 py-2.5 text-[13px] text-[var(--color-muted)]">
+          <div className="relative flex flex-wrap items-center gap-x-2 gap-y-1 px-4 py-2.5 text-xs text-[var(--color-muted)]">
             <span className="row-divider-line absolute inset-x-4 top-0" />
             <StatusDot status={status} />
             <span className={cn(status.kind === 'error' && 'text-red-500')}>{statusTextOf(status)}</span>
@@ -377,7 +373,7 @@ export function SettingsPage() {
             <button
               type="button"
               disabled={busy !== null || !configured}
-              className="btn-primary min-h-11 w-full text-[15px]"
+              className="btn-primary min-h-11 w-full text-sm"
               onClick={() => void run('sync', doFullSync, '同步完成')}
             >
               {busy === 'sync' ? (
@@ -468,7 +464,7 @@ export function SettingsPage() {
           {/* 冲突处理 */}
           {conflict && (
             <div className="animate-fade-in mx-3 mb-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
-              <p className="mb-2 text-[13px]">云端 revision = {conflict.remote.revision}，请选择：</p>
+              <p className="mb-2 text-xs">云端 revision = {conflict.remote.revision}，请选择：</p>
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -501,27 +497,9 @@ export function SettingsPage() {
         </Section>
 
         {/* 管理 */}
-        <Section title="管理" icon={<SlidersHorizontal size={14} strokeWidth={1.75} />}>
+        <Section title="管理" icon={<SlidersHorizontal size={13} strokeWidth={1.75} />}>
           <Row
-            icon={<Folder size={18} strokeWidth={1.75} />}
-            iconColor="var(--color-brand)"
-            title="清单"
-            subtitle={`${lists.length} 个（含收集箱）`}
-            right={<Chevron />}
-            onClick={() => setActiveView({ kind: 'module', id: 'lists' })}
-          />
-          <Row
-            divider
-            icon={<TagIcon size={18} strokeWidth={1.75} />}
-            iconColor="#4d8ef7"
-            title="标签"
-            subtitle={tags.length ? `${tags.length} 个` : '暂无'}
-            right={<Chevron />}
-            onClick={() => setActiveView({ kind: 'module', id: 'tags' })}
-          />
-          <Row
-            divider
-            icon={<ListFilter size={18} strokeWidth={1.75} />}
+            icon={<ListFilter size={17} strokeWidth={1.75} />}
             iconColor="#9a6ef7"
             title="过滤器"
             subtitle={filterActive ? '筛选生效中' : '未启用'}
@@ -532,7 +510,7 @@ export function SettingsPage() {
 
         {/* 关于 */}
         <Section title="关于" icon={<Info size={14} strokeWidth={1.75} />}>
-          <Row title="版本" right={<span className="tnum text-[13px] text-[var(--color-muted)]">v{__APP_VERSION__}</span>} />
+          <Row title="版本" right={<span className="tnum text-xs text-[var(--color-muted)]">v{__APP_VERSION__}</span>} />
           <Row
             divider
             title="滴答清单复刻"

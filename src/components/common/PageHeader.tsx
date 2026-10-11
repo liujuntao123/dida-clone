@@ -34,7 +34,7 @@ export function PageHeader({
           <ArrowLeft size={22} />
         </button>
         <div className="pointer-events-none absolute inset-x-16 bottom-0 top-[max(6px,env(safe-area-inset-top,0px))] flex flex-col items-center justify-center">
-          <h1 className="truncate text-[17px] font-semibold leading-tight">{title}</h1>
+          <h1 className="truncate text-[16px] font-semibold leading-tight">{title}</h1>
           {subtitle && <div className="truncate text-xs text-[var(--color-muted)]">{subtitle}</div>}
         </div>
         <div className="ml-auto flex shrink-0 items-center">{right}</div>
@@ -55,7 +55,7 @@ export function PageHeader({
         <ArrowLeft size={22} />
       </button>
       <div className="min-w-0 flex-1">
-        <h1 className="truncate text-[17px] font-semibold leading-tight">{title}</h1>
+        <h1 className="truncate text-[16px] font-semibold leading-tight">{title}</h1>
         {subtitle && <div className="truncate text-xs text-[var(--color-muted)]">{subtitle}</div>}
       </div>
       <div className="flex shrink-0 items-center">{right}</div>

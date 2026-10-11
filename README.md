@@ -126,6 +126,13 @@ curl -s -X PUT -H "Authorization: Bearer $KEY" -H "Content-Type: application/jso
 
 见此前清单：智能清单、任务详情（桌面侧栏 / 移动端底部抽屉，双档吸顶）、识日期、提醒、标签/检查项、日历月视图、看板、四象限、搜索过滤、深浅色、垃圾桶（侧栏可直达）、撤销 Toast 等。
 
+### v0.11 优化
+
+- **设置页瘦身**：清单 / 标签管理不再放进设置页——侧栏「＋添加」菜单已有独立入口，设置页「管理」区只保留过滤器。
+- **新建任务抽屉重做**（对齐滴答清单）：顶部大标题输入 + 底部工具条（日期 / 优先级 / 标签 / 移动清单 / 描述）+ 右侧圆形发送按钮；日期支持今天 / 明天 / 自选时间，优先级、标签、清单可在添加时直接指定，标签支持就地新建；已选项以胶囊展示、点 × 即移除，自然语言识日期照常生效。
+- **全站字号协调**：正文统一 14px、次要文字 12px、模块页页头 16px、大标题（日历 / 四象限 / 详情）20px，层级更细腻、信息密度更舒适。
+- e2e 扩充到 **53 项断言**（新增新建抽屉工具条 / 属性胶囊 / 优先级随任务落库回归）。
+
 ### v0.10 优化
 
 - **返回键导航**：Android 硬件返回键按层级回退——快速添加抽屉 / 任务详情 / 弹层 → 侧栏 → 全屏模块页（搜索 / 清单 / 标签 / 过滤器 / 设置）→ 主页面，退无可退才退出应用（`src/lib/backNav.ts` 处理器栈，新弹层用 `useBackHandler` 一行接入）。
@@ -146,7 +153,7 @@ curl -s -X PUT -H "Authorization: Bearer $KEY" -H "Content-Type: application/jso
 - **逻辑一致性**：桌面 hover 操作按任务状态变化（垃圾桶行 = 恢复 / 永久删除，已放弃行 = 恢复 / 删除）；已完成任务详情菜单补上「删除」；修复移动端任务行右侧约 1/3 宽度的「点不中」死区（swipeable-list flex 容器导致行未撑满）。
 - **过场动画**：侧栏抽屉开合（滑入滑出 + 遮罩淡入淡出）、视图切换轻量淡入、分组展开、「移动到清单」弹层滑入；遵循 `prefers-reduced-motion`。
 - 看板 / 设置页补充状态栏安全区（safe-area-inset-top）。
-- 新增 `scripts/e2e-check.mjs`：puppeteer + Chrome 的自动化验证（移动手势 / 标签 / 子任务 / 垃圾桶 / 动画类，39 项断言）。
+- 新增 `scripts/e2e-check.mjs`：puppeteer + Chrome 的自动化验证（移动手势 / 标签 / 子任务 / 垃圾桶 / 动画类，历史基线 39 项断言）。
 
 ### v0.6 优化
 
@@ -209,7 +216,7 @@ git tag -a v0.1.0 -m "v0.1.0" && git push origin v0.1.0
 src/           # 前端
 android/       # Capacitor Android 工程（提交到 Git，供 CI）
 worker/        # Cloudflare Worker + D1 schema
-scripts/       # e2e-check.mjs：puppeteer 自动化验证（39 项断言）
+scripts/       # e2e-check.mjs：puppeteer 自动化验证（53 项断言）
 .github/workflows/android.yml  # 打 release APK / Release（手动触发）
 screenshots/   # 界面截图
 AGENTS.md      # AI agent / 维护者协作规范（发版清单、已知陷阱）
